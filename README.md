@@ -2,7 +2,7 @@
 
 > 一款專為女性設計、結合「四季主題」與「現代散文詩」的沉浸式互動塔羅牌 Web App。  
 > 秉持高訂獨立雜誌（Editorial Magazine）的藝術質感，以極簡的線條、清透的光影與溫柔克制的文字，陪伴妳傾聽靈魂深處的低語。
-
+體驗網址：https://wu0308.github.io/four-seasons-tarot/
 ---
 
 ## 視覺與美術系統 (Visual & Art Direction)
