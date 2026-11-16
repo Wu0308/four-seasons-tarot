@@ -156,12 +156,14 @@ html, body {
   border-bottom: 0.5px solid var(--card-border);
   margin-bottom: 40px;
   transition: var(--transition-theme);
+  width: 100%;
 }
 
 .brand-mark {
   display: flex;
   align-items: baseline;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .brand-title {
@@ -176,6 +178,13 @@ html, body {
   letter-spacing: 0.15em;
   color: var(--text-muted);
   text-transform: uppercase;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
 }
 
 /* Season Switcher Pill Bar */
@@ -205,7 +214,17 @@ html, body {
   font-family: 'Noto Serif TC', serif;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.season-label-full {
+  display: inline;
+}
+
+.season-label-short {
+  display: none;
 }
 
 .season-btn:hover {
@@ -219,7 +238,13 @@ html, body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Sound / BGM Toggle Button */
+/* Sound & Volume Control Group */
+.sound-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .sound-btn {
   background: transparent;
   border: 1px solid var(--glass-border);
@@ -232,7 +257,6 @@ html, body {
   cursor: pointer;
   color: var(--text-secondary);
   transition: all 0.3s ease;
-  margin-left: 12px;
 }
 
 .sound-btn:hover {
@@ -254,6 +278,110 @@ html, body {
   50% {
     box-shadow: 0 0 16px 4px var(--glow-color);
     transform: scale(1.05);
+  }
+}
+
+/* Volume Step Pill */
+.volume-control-pill {
+  display: flex;
+  align-items: center;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  padding: 3px 4px;
+  gap: 2px;
+  box-shadow: var(--shadow-soft);
+}
+
+.vol-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 4px 7px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: 'Noto Serif TC', serif;
+  line-height: 1;
+}
+
+.vol-btn:hover {
+  color: var(--text-primary);
+}
+
+.vol-btn.active {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+/* Responsive Header Overrides for Mobile Screens */
+@media (max-width: 680px) {
+  .header-bar {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+
+  .brand-mark {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .header-controls {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-title {
+    font-size: 1.15rem;
+    letter-spacing: 0.2em;
+  }
+
+  .brand-sub {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+  }
+
+  .season-label-full {
+    display: none;
+  }
+
+  .season-label-short {
+    display: inline;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .season-btn {
+    padding: 6px 12px;
+    min-width: 36px;
+  }
+
+  .season-switcher {
+    padding: 3px 4px;
+    gap: 2px;
+  }
+
+  .sound-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .vol-btn {
+    padding: 3px 6px;
+    font-size: 0.68rem;
   }
 }
 
@@ -460,27 +588,143 @@ html, body {
 }
 
 .breathing-circle-halo {
-  width: 90px;
-  height: 90px;
-  margin: 0 auto 24px;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 18px;
   border-radius: 50%;
   border: 1px solid var(--gold-foil);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: breathePulse 6s ease-in-out infinite;
+  animation: boxBreatheCadence 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   color: var(--gold-foil);
+  transition: border-color 0.8s ease;
 }
 
-@keyframes breathePulse {
+.breathing-star-svg {
+  animation: orbitStarSpin 24s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes orbitStarSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 12-second 4-4-4 Relaxation Cadence: 4s Inhale, 4s Hold, 4s Exhale */
+@keyframes boxBreatheCadence {
+  0% {
+    transform: scale(0.88);
+    box-shadow: 0 0 10px var(--glow-color);
+    opacity: 0.8;
+  }
+  33.33% {
+    /* 4s mark: Inhale peak */
+    transform: scale(1.22);
+    box-shadow: 0 0 36px 10px var(--glow-color);
+    opacity: 1;
+  }
+  66.66% {
+    /* 8s mark: Hold steady */
+    transform: scale(1.22);
+    box-shadow: 0 0 30px 8px var(--glow-color);
+    opacity: 0.95;
+  }
+  100% {
+    /* 12s mark: Exhale return */
+    transform: scale(0.88);
+    box-shadow: 0 0 10px var(--glow-color);
+    opacity: 0.8;
+  }
+}
+
+/* Breathing Phase Pill Cue */
+.breathing-cadence-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  color: var(--text-secondary);
+  margin: 12px auto 20px;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.4s ease;
+}
+
+.cadence-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold-foil);
+  animation: cadenceDotPulse 4s ease-in-out infinite;
+}
+
+@keyframes cadenceDotPulse {
   0%, 100% {
-    transform: scale(0.92);
-    box-shadow: 0 0 0 0 transparent;
+    transform: scale(0.85);
+    opacity: 0.6;
   }
   50% {
-    transform: scale(1.15);
-    box-shadow: 0 0 32px 10px var(--glow-color);
+    transform: scale(1.35);
+    opacity: 1;
+    box-shadow: 0 0 8px var(--glow-color);
+  }
+}
+
+.breathing-phase-rotator {
+  display: inline-block;
+  position: relative;
+  height: 1.4em;
+  min-width: 140px;
+  vertical-align: middle;
+}
+
+.phase-item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+  font-weight: 500;
+  color: var(--gold-foil);
+  animation: breathingPhaseFade 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+.phase-item.phase-1 {
+  animation-delay: 0s;
+}
+
+.phase-item.phase-2 {
+  animation-delay: 4s;
+}
+
+.phase-item.phase-3 {
+  animation-delay: 8s;
+}
+
+@keyframes breathingPhaseFade {
+  0% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  3%, 30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  33.33%, 100% {
+    opacity: 0;
+    transform: translateY(-3px);
   }
 }
 
@@ -673,6 +917,7 @@ html, body {
 
 .tarot-card-3d.flipped .tarot-card-inner {
   transform: rotateY(180deg);
+  box-shadow: 0 16px 40px var(--glow-color);
 }
 
 .card-face {
@@ -706,6 +951,47 @@ html, body {
   flex-direction: column;
   padding: 18px 16px;
   justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Gold Foil Sheen Micro-interaction (Candlelight paper reflection) */
+.card-foil-sheen {
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 220%;
+  height: 220%;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.35) 45%,
+    rgba(212, 175, 55, 0.8) 50%,
+    rgba(255, 255, 255, 0.45) 55%,
+    transparent 70%
+  );
+  transform: translateX(-120%) rotate(25deg);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 25;
+}
+
+.card-foil-sheen.animate-sheen {
+  animation: foilSheenSweep 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+}
+
+@keyframes foilSheenSweep {
+  0% {
+    transform: translateX(-120%) rotate(25deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(120%) rotate(25deg);
+    opacity: 0;
+  }
 }
 
 .card-top-bar {

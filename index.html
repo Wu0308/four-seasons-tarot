@@ -30,29 +30,40 @@
         <span class="brand-sub font-sans">Le Voyage Intérieur</span>
       </div>
 
-      <div style="display: flex; align-items: center;">
+      <div class="header-controls">
         <nav class="season-switcher" aria-label="季節主題選擇">
           <button class="season-btn active" data-season="spring" title="切換至 春・初綻">
-            春・初綻
+            <span class="season-label-full">春・初綻</span>
+            <span class="season-label-short">春</span>
           </button>
           <button class="season-btn" data-season="summer" title="切換至 夏・仲夜">
-            夏・仲夜
+            <span class="season-label-full">夏・仲夜</span>
+            <span class="season-label-short">夏</span>
           </button>
           <button class="season-btn" data-season="autumn" title="切換至 秋・暮光">
-            秋・暮光
+            <span class="season-label-full">秋・暮光</span>
+            <span class="season-label-short">秋</span>
           </button>
           <button class="season-btn" data-season="winter" title="切換至 冬・初雪">
-            冬・初雪
+            <span class="season-label-full">冬・初雪</span>
+            <span class="season-label-short">冬</span>
           </button>
         </nav>
 
-        <button id="sound-toggle-btn" class="sound-btn" title="播放背景音樂" aria-label="播放背景音樂">
-          <svg class="icon-music" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 18V5l12-2v13"></path>
-            <circle cx="6" cy="18" r="3"></circle>
-            <circle cx="18" cy="16" r="3"></circle>
-          </svg>
-        </button>
+        <div class="sound-control-group">
+          <button id="sound-toggle-btn" class="sound-btn" title="播放背景音樂" aria-label="播放背景音樂">
+            <svg class="icon-music" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+          </button>
+          <div class="volume-control-pill" id="volume-control-pill" aria-label="音樂音量調節">
+            <button class="vol-btn" data-vol="0.2" title="微光音量 20%">微</button>
+            <button class="vol-btn active" data-vol="0.38" title="適中音量 38%">適</button>
+            <button class="vol-btn" data-vol="0.7" title="沉浸音量 70%">沁</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -120,14 +131,24 @@
       <div id="breathing-box" class="breathing-box">
         <div class="breathing-circle-halo">
           <!-- Concentric Orbits & Subtle 4-Pointed Star (Eliminates Time Anxiety) -->
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <svg class="breathing-star-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
             <circle cx="12" cy="12" r="9" stroke-dasharray="2 3" opacity="0.6"></circle>
             <circle cx="12" cy="12" r="5"></circle>
             <polygon points="12,3 13.2,10.8 21,12 13.2,13.2 12,21 10.8,13.2 3,12 10.8,10.8" fill="currentColor" opacity="0.85"></polygon>
           </svg>
         </div>
+
+        <div id="breathing-cadence-pill" class="breathing-cadence-pill font-sans">
+          <span class="cadence-dot"></span>
+          <span class="breathing-phase-rotator">
+            <span class="phase-item phase-1">吸氣・凝神初綻</span>
+            <span class="phase-item phase-2">屏息・沉澱靜謐</span>
+            <span class="phase-item phase-3">呼氣・安放紛擾</span>
+          </span>
+        </div>
+
         <p class="breathing-verse font-serif">
-          閉上雙眼，深呼吸三次……<br>
+          閉上雙眼，隨光暈深呼吸三次……<br>
           讓白晝的紛擾在心底緩緩沉降，聽見最初的潮聲。
         </p>
         <button id="btn-ready-pick" class="btn-primary font-serif">

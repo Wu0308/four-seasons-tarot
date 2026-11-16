@@ -12,7 +12,18 @@ const SEASON_BGM_CONFIG = {
 
 class BgmPlayer {
   constructor() {
-    this.targetVolume = 0.35;
+    let savedVol = 0.38;
+    try {
+      const stored = localStorage.getItem('tarot_bgm_volume');
+      if (stored !== null) {
+        const parsed = parseFloat(stored);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+          savedVol = parsed;
+        }
+      }
+    } catch (e) {}
+
+    this.targetVolume = savedVol;
     this.currentSeason = 'spring';
     this.isPlaying = false;
     this.userExplicitlyPaused = false;
@@ -29,6 +40,7 @@ class BgmPlayer {
     this.activeAudio.src = SEASON_BGM_CONFIG[this.currentSeason];
 
     this.setupAutoplayUnlocking();
+    this.setupVolumeControls();
   }
 
   get activeAudio() {
@@ -177,19 +189,65 @@ class BgmPlayer {
     requestAnimationFrame(tick);
   }
 
-  updateUi() {
-    const btn = document.getElementById('sound-toggle-btn');
-    if (!btn) return;
+  setVolume(newVolume) {
+    const vol = parseFloat(newVolume);
+    if (isNaN(vol) || vol < 0 || vol > 1) return;
+    this.targetVolume = vol;
+
+    try {
+      localStorage.setItem('tarot_bgm_volume', String(vol));
+    } catch (e) {}
 
     if (this.isPlaying) {
-      btn.classList.add('is-playing');
-      btn.setAttribute('title', '暫停背景音樂');
-      btn.setAttribute('aria-label', '暫停背景音樂');
-    } else {
-      btn.classList.remove('is-playing');
-      btn.setAttribute('title', '播放背景音樂');
-      btn.setAttribute('aria-label', '播放背景音樂');
+      const current = this.activeAudio;
+      this.fadeVolume(current, current.volume, this.targetVolume, 250);
     }
+    this.updateUi();
+  }
+
+  setupVolumeControls() {
+    const attach = () => {
+      const volBtns = document.querySelectorAll('.vol-btn');
+      volBtns.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const vol = parseFloat(btn.dataset.vol);
+          this.setVolume(vol);
+          if (!this.isPlaying) {
+            this.play();
+          }
+        });
+      });
+      this.updateUi();
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attach);
+    } else {
+      setTimeout(attach, 0);
+    }
+  }
+
+  updateUi() {
+    const btn = document.getElementById('sound-toggle-btn');
+    if (btn) {
+      if (this.isPlaying) {
+        btn.classList.add('is-playing');
+        btn.setAttribute('title', '暫停背景音樂');
+        btn.setAttribute('aria-label', '暫停背景音樂');
+      } else {
+        btn.classList.remove('is-playing');
+        btn.setAttribute('title', '播放背景音樂');
+        btn.setAttribute('aria-label', '播放背景音樂');
+      }
+    }
+
+    const volBtns = document.querySelectorAll('.vol-btn');
+    volBtns.forEach((vBtn) => {
+      const btnVol = parseFloat(vBtn.dataset.vol);
+      const isMatch = Math.abs(btnVol - this.targetVolume) < 0.08;
+      vBtn.classList.toggle('active', isMatch);
+    });
   }
 
   // Backward-compatibility safe stubs for previous synthesizer methods

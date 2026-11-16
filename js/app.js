@@ -325,6 +325,7 @@
             </div>
             <!-- Front Face -->
             <div class="card-face card-face-front ${item.isReversed ? 'is-reversed' : ''}">
+              <div class="card-foil-sheen" aria-hidden="true"></div>
               <div class="card-top-bar">
                 <span class="card-roman-num font-serif">${item.cardData.roman}</span>
                 <span class="card-orientation-badge ${reversedClass}">${orientationLabel}</span>
@@ -357,6 +358,14 @@
     state.revealedIndices.add(idx);
     card3DEl.classList.add('flipped');
     if (hintEl) hintEl.textContent = '已揭示';
+
+    // Trigger foil sheen sweep
+    const sheenEl = card3DEl.querySelector('.card-foil-sheen');
+    if (sheenEl) {
+      sheenEl.classList.remove('animate-sheen');
+      void sheenEl.offsetWidth; // force reflow
+      sheenEl.classList.add('animate-sheen');
+    }
 
     // Check if all 3 cards are flipped
     if (state.revealedIndices.size === 3) {
