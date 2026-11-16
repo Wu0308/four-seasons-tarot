@@ -94,7 +94,7 @@ class SeasonalParticles {
           color: Math.random() > 0.5 ? 'rgba(200, 122, 91, ' : 'rgba(140, 83, 62, '
         };
 
-      case 'winter': // Snowflakes & frosty crystal dust
+      case 'winter': // Snowflakes & frosty crystal dust (Interlacing cool pine gray-blue and pure white)
         return {
           x,
           y,
@@ -103,8 +103,8 @@ class SeasonalParticles {
           speedX: (Math.random() - 0.5) * 0.3,
           angle: Math.random() * Math.PI * 2,
           rotSpeed: (Math.random() - 0.5) * 0.015,
-          opacity: 0.25 + Math.random() * 0.5,
-          color: Math.random() > 0.3 ? 'rgba(255, 255, 255, ' : 'rgba(180, 205, 220, '
+          opacity: 0.28 + Math.random() * 0.52,
+          color: Math.random() > 0.45 ? 'rgba(122, 145, 158, ' : 'rgba(255, 255, 255, '
         };
     }
   }

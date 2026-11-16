@@ -55,13 +55,16 @@
     setupEventListeners();
     applySeasonTheme(state.season);
     updateTopicSelection('love');
+
+    // Sync BGM player UI state
+    window.bgmPlayer?.updateUi();
   }
 
   // Event Listeners Setup
   function setupEventListeners() {
     // Season Switcher
     elements.seasonBtns.forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const season = btn.dataset.season;
         if (season && season !== state.season) {
           switchSeason(season);
@@ -69,12 +72,10 @@
       });
     });
 
-    // Sound Toggle
+    // Sound / BGM Toggle
     if (elements.soundToggleBtn) {
       elements.soundToggleBtn.addEventListener('click', () => {
-        const isMuted = soundEngine.toggleMute();
-        elements.soundToggleBtn.style.opacity = isMuted ? '0.4' : '1';
-        elements.soundToggleBtn.setAttribute('title', isMuted ? '開啟聲效' : '靜音');
+        window.bgmPlayer?.toggle();
       });
     }
 
@@ -83,14 +84,14 @@
       card.addEventListener('click', () => {
         const topic = card.dataset.topic;
         updateTopicSelection(topic);
-        soundEngine.playChime(640, 0.4);
+        window.bgmPlayer?.play();
       });
     });
 
     // Stage 1 -> Stage 2 (Meditation Start)
     if (elements.btnStartMeditation) {
       elements.btnStartMeditation.addEventListener('click', () => {
-        soundEngine.playChime(520, 0.8);
+        window.bgmPlayer?.play();
         goToStage(2);
         initStage2();
       });
@@ -99,7 +100,6 @@
     // Stage 2: Ready to Pick button
     if (elements.btnReadyPick) {
       elements.btnReadyPick.addEventListener('click', () => {
-        soundEngine.playChime(720, 0.8);
         revealSpreadDeck();
       });
     }
@@ -107,7 +107,6 @@
     // Stage 3 -> Stage 4 (View Detailed Reading)
     if (elements.btnViewReading) {
       elements.btnViewReading.addEventListener('click', () => {
-        soundEngine.playChime(600, 1.0);
         goToStage(4);
         renderFullReading();
       });
@@ -119,15 +118,14 @@
         const target = e.target.closest('button');
         if (!target) return;
         if (target.id === 'btn-open-postcard') {
-          soundEngine.playChime(780, 0.6);
           openPostcardModal();
         } else if (target.id === 'btn-reset-tarot') {
-          soundEngine.playChime(480, 0.6);
           resetState();
         }
       });
     }
 
+    // Postcard Modal Close Buttons
     if (elements.btnClosePostcard) {
       elements.btnClosePostcard.addEventListener('click', closePostcardModal);
     }
@@ -140,6 +138,13 @@
       });
     }
 
+    // Accessibility: Keyboard Escape key listener to close modal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && elements.postcardModal.classList.contains('open')) {
+        closePostcardModal();
+      }
+    });
+
     // Copy Postcard Text
     if (elements.btnCopyPostcardText) {
       elements.btnCopyPostcardText.addEventListener('click', copyPostcardProse);
@@ -150,7 +155,7 @@
   function switchSeason(seasonKey) {
     state.season = seasonKey;
     applySeasonTheme(seasonKey);
-    soundEngine.playBreeze();
+    window.bgmPlayer?.switchSeason(seasonKey);
 
     if (state.particles) {
       state.particles.setSeason(seasonKey);
@@ -223,17 +228,13 @@
     elements.spreadDeck.innerHTML = '';
     const backSvg = window.CARD_SVGS['back_' + state.season] || window.CARD_SVGS['back_spring'];
 
-    // Provide 14 mystery cards laid out for selection
+    // Provide 14 mystery cards laid out for selection with overlapping fan display
     const totalMysteryCards = 14;
     for (let i = 0; i < totalMysteryCards; i++) {
       const cardEl = document.createElement('div');
       cardEl.className = 'mystery-card';
       cardEl.dataset.index = i;
       cardEl.innerHTML = backSvg;
-
-      cardEl.addEventListener('mouseenter', () => {
-        soundEngine.playChime(800 + i * 25, 0.3);
-      });
 
       cardEl.addEventListener('click', () => {
         handleMysteryCardClick(cardEl, i);
@@ -249,7 +250,6 @@
     }
 
     cardEl.classList.add('picked');
-    soundEngine.playChime(620 + state.pickedCards.length * 120, 0.7);
 
     // Pick a card from 22 Major Arcana without duplicate
     const drawnIds = state.pickedCards.map((p) => p.cardData.id);
@@ -357,7 +357,6 @@
     state.revealedIndices.add(idx);
     card3DEl.classList.add('flipped');
     if (hintEl) hintEl.textContent = '已揭示';
-    soundEngine.playFlip();
 
     // Check if all 3 cards are flipped
     if (state.revealedIndices.size === 3) {
@@ -473,8 +472,8 @@
     // Paragraph 2: Present to Future Glimmer
     const p2 = `當夜色漸深，妳可能會在胸口摸到那一塊隱隱作痛的迷惘。然而，【微光】所指向的${c3.cardData.name}，正在地平線上替妳燃起一盞「${o3.keyword}」的燈火。從${c1.cardData.name}的跋涉，途經${c2.cardData.name}的沉澱，再走到${c3.cardData.name}的破曉，這不是命運對妳的刁難，而是一場深情的淬鍊——生命正在把那些瑣碎的砂礫，磨成妳眼底安靜而清澈的星光。`;
 
-    // Paragraph 3: Seasonal resonance & Personal whisper
-    const p3 = `${season.quote} 親愛的妳，在${season.name}的微光裡，請允許自己不用隨時保持無懈可擊的堅強。有些答案，本就該像花瓣落水一樣自然，讓風吹走該走的，讓光留給該留的。只要妳還願意信任自己最初的溫度，這座四季的花園，就永遠有妳一席安放靈魂的角落。`;
+    // Paragraph 3: Seasonal resonance & Personal whisper (Direct poetic transition without robotic cliches)
+    const p3 = `${season.quote} 在${season.name}的微光裡，請允許自己不用隨時保持無懈可擊的堅強。有些答案，本就該像花瓣落水一樣自然，讓風吹走該走的，讓光留給該留的。只要妳還願意信任自己最初的溫度，這座四季的花園，就永遠有妳一席安放靈魂的角落。`;
 
     return { p1, p2, p3 };
   }
@@ -506,10 +505,12 @@
     `;
 
     elements.postcardModal.classList.add('open');
+    elements.postcardModal.setAttribute('aria-hidden', 'false');
   }
 
   function closePostcardModal() {
     elements.postcardModal.classList.remove('open');
+    elements.postcardModal.setAttribute('aria-hidden', 'true');
   }
 
   function copyPostcardProse() {

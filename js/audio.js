@@ -1,142 +1,206 @@
 /**
- * Web Audio API Acoustic Synthesizer
- * Generates delicate, ethereal crystal bells, wind chimes, and gentle sub resonances
- * 100% self-contained with zero external audio files.
+ * 四季專屬高質感純音樂（BGM）播放器
+ * Ambient Background Music Engine with Smooth Crossfade & Resilient Error Handling
  */
-class SoundEngine {
+
+const SEASON_BGM_CONFIG = {
+  spring: 'assets/audio/spring-piano.mp3',  // 春・晨露與鋼琴獨奏
+  summer: 'assets/audio/summer-night.mp3',  // 夏・仲夜微風與大提琴
+  autumn: 'assets/audio/autumn-rain.mp3',   // 秋・暮光與細雨聲
+  winter: 'assets/audio/winter-silence.mp3' // 冬・初雪與空靈環境音
+};
+
+class BgmPlayer {
   constructor() {
-    this.ctx = null;
-    this.isMuted = false;
-    this.initDone = false;
+    this.targetVolume = 0.35;
+    this.currentSeason = 'spring';
+    this.isPlaying = false;
+    this.userExplicitlyPaused = false;
+    this.hasUnlockedAutoplay = false;
+
+    // Dual audio channel architecture for seamless 0.8s / 1.0s crossfading
+    this.channelA = new Audio();
+    this.channelB = new Audio();
+    this.activeChannel = 'A'; // 'A' or 'B'
+
+    this.initChannel(this.channelA);
+    this.initChannel(this.channelB);
+
+    this.activeAudio.src = SEASON_BGM_CONFIG[this.currentSeason];
+
+    this.setupAutoplayUnlocking();
   }
 
-  init() {
-    if (this.initDone) return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        this.ctx = new AudioContext();
-        this.initDone = true;
-      }
-    } catch (e) {
-      console.warn("AudioContext not supported", e);
-    }
+  get activeAudio() {
+    return this.activeChannel === 'A' ? this.channelA : this.channelB;
   }
 
-  toggleMute() {
-    this.isMuted = !this.isMuted;
-    return this.isMuted;
+  get inactiveAudio() {
+    return this.activeChannel === 'A' ? this.channelB : this.channelA;
   }
 
-  resume() {
-    this.init();
-    if (this.ctx && this.ctx.state === "suspended") {
-      this.ctx.resume();
-    }
-  }
+  initChannel(audio) {
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.volume = 0;
 
-  // Play subtle crystal bell tone (card hover / selection)
-  playChime(freq = 880, duration = 1.2) {
-    if (this.isMuted) return;
-    this.resume();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.1);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.98, now + duration);
-
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(3200, now);
-
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.12, now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + duration);
-  }
-
-  // Play deep ethereal resonance on card flip
-  playFlip() {
-    if (this.isMuted) return;
-    this.resume();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-
-    // Harmonic bell pair
-    [523.25, 659.25, 783.99].forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-
-      gain.gain.setValueAtTime(0.001, now + idx * 0.08);
-      gain.gain.linearRampToValueAtTime(0.08 / (idx + 1), now + idx * 0.08 + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 1.8);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now + idx * 0.08);
-      osc.stop(now + idx * 0.08 + 1.9);
+    // Silent error resilience - never pop error or break application
+    audio.addEventListener('error', () => {
+      console.info('背景音樂音檔載入提示（可依需求於 assets/audio/ 放置音檔）:', audio.src);
     });
   }
 
-  // Play soft wind sound on season transition
-  playBreeze() {
-    if (this.isMuted) return;
-    this.resume();
-    if (!this.ctx) return;
+  setupAutoplayUnlocking() {
+    const unlock = () => {
+      if (this.hasUnlockedAutoplay) return;
+      this.hasUnlockedAutoplay = true;
 
-    const now = this.ctx.currentTime;
-    const dur = 1.6;
+      if (!this.userExplicitlyPaused && !this.isPlaying) {
+        this.play();
+      }
 
-    // Pink/white noise buffer for soft breeze
-    const bufferSize = this.ctx.sampleRate * dur;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let lastOut = 0.0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      data[i] = (lastOut + 0.02 * white) / 1.02;
-      lastOut = data[i];
-      data[i] *= 3.5;
+      ['click', 'touchstart', 'keydown'].forEach((evt) => {
+        window.removeEventListener(evt, unlock, true);
+      });
+    };
+
+    ['click', 'touchstart', 'keydown'].forEach((evt) => {
+      window.addEventListener(evt, unlock, { once: true, capture: true });
+    });
+  }
+
+  play() {
+    this.userExplicitlyPaused = false;
+    const current = this.activeAudio;
+
+    if (!current.src || !current.src.includes(SEASON_BGM_CONFIG[this.currentSeason])) {
+      current.src = SEASON_BGM_CONFIG[this.currentSeason];
     }
 
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    const playPromise = current.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          this.isPlaying = true;
+          this.fadeVolume(current, current.volume, this.targetVolume, 1000);
+          this.updateUi();
+        })
+        .catch(() => {
+          // Handled silently for autoplay policies or missing files
+          this.isPlaying = false;
+          this.updateUi();
+        });
+    }
+  }
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(400, now);
-    filter.frequency.exponentialRampToValueAtTime(750, now + 0.8);
-    filter.frequency.exponentialRampToValueAtTime(320, now + dur);
-    filter.Q.setValueAtTime(3.0, now);
+  pause() {
+    this.userExplicitlyPaused = true;
+    const current = this.activeAudio;
+    this.fadeVolume(current, current.volume, 0, 600, () => {
+      current.pause();
+      this.isPlaying = false;
+      this.updateUi();
+    });
+  }
 
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.08, now + 0.6);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  toggle() {
+    if (this.isPlaying) {
+      this.pause();
+    } else {
+      this.play();
+    }
+    return this.isPlaying;
+  }
 
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
+  switchSeason(seasonKey) {
+    if (!SEASON_BGM_CONFIG[seasonKey] || this.currentSeason === seasonKey) {
+      return;
+    }
 
-    noise.start(now);
-    noise.stop(now + dur);
+    this.currentSeason = seasonKey;
+    const newSrc = SEASON_BGM_CONFIG[seasonKey];
+
+    if (!this.isPlaying) {
+      // Just swap track source quietly if paused
+      this.activeAudio.src = newSrc;
+      return;
+    }
+
+    // Crossfade: Fade-out current track (0.8s) & Fade-in new track (1.0s)
+    const outgoing = this.activeAudio;
+    this.activeChannel = this.activeChannel === 'A' ? 'B' : 'A';
+    const incoming = this.activeAudio;
+
+    // 1. Smooth Fade-out outgoing channel to 0 in 800ms
+    this.fadeVolume(outgoing, outgoing.volume, 0, 800, () => {
+      outgoing.pause();
+      outgoing.currentTime = 0;
+    });
+
+    // 2. Prepare incoming channel & Fade-in to target volume in 1000ms
+    incoming.src = newSrc;
+    incoming.volume = 0;
+    const playPromise = incoming.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          this.fadeVolume(incoming, 0, this.targetVolume, 1000);
+        })
+        .catch(() => {
+          console.info('新季節音訊未載入或受瀏覽器限制:', newSrc);
+        });
+    }
+  }
+
+  fadeVolume(audio, startVol, endVol, durationMs, onComplete) {
+    const startTime = performance.now();
+    const tick = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+      const easeVal = startVol + (endVol - startVol) * progress;
+
+      try {
+        audio.volume = Math.max(0, Math.min(1, easeVal));
+      } catch (e) {
+        // Safe check
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        if (typeof onComplete === 'function') {
+          onComplete();
+        }
+      }
+    };
+
+    requestAnimationFrame(tick);
+  }
+
+  updateUi() {
+    const btn = document.getElementById('sound-toggle-btn');
+    if (!btn) return;
+
+    if (this.isPlaying) {
+      btn.classList.add('is-playing');
+      btn.setAttribute('title', '暫停背景音樂');
+      btn.setAttribute('aria-label', '暫停背景音樂');
+    } else {
+      btn.classList.remove('is-playing');
+      btn.setAttribute('title', '播放背景音樂');
+      btn.setAttribute('aria-label', '播放背景音樂');
+    }
+  }
+
+  // Backward-compatibility safe stubs for previous synthesizer methods
+  playChime() {}
+  playFlip() {}
+  playBreeze() {}
+  toggleMute() {
+    return !this.toggle();
   }
 }
 
-window.soundEngine = new SoundEngine();
+// Global Export & Alias for backward compatibility
+window.bgmPlayer = new BgmPlayer();
+window.soundEngine = window.bgmPlayer;
