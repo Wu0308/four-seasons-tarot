@@ -6,6 +6,8 @@
 (function () {
   'use strict';
 
+  const JOURNAL_STORAGE_KEY = 'tarot_soul_journal';
+
   // Application State
   const state = {
     season: 'spring',
@@ -14,7 +16,10 @@
     meditationStep: 'breathing', // 'breathing' | 'picking'
     pickedCards: [], // Array of { cardData, isReversed, position }
     revealedIndices: new Set(),
-    particles: null
+    particles: null,
+    isTransitioning: false,
+    sessionRecorded: false,
+    currentPostcardPayload: null
   };
 
   // DOM Elements Cache
@@ -22,6 +27,7 @@
     appContainer: document.querySelector('.app-container'),
     seasonBtns: document.querySelectorAll('.season-btn'),
     soundToggleBtn: document.getElementById('sound-toggle-btn'),
+    btnOpenJournal: document.getElementById('btn-open-journal'),
     stages: {
       1: document.getElementById('stage-1'),
       2: document.getElementById('stage-2'),
@@ -41,8 +47,14 @@
     readingContainer: document.getElementById('reading-container'),
     postcardModal: document.getElementById('postcard-modal'),
     btnClosePostcard: document.getElementById('btn-close-postcard'),
+    btnDownloadPostcard: document.getElementById('btn-download-postcard'),
+    btnDownloadText: document.getElementById('btn-download-text'),
     btnCopyPostcardText: document.getElementById('btn-copy-postcard-text'),
     postcardEditorialSheet: document.getElementById('postcard-editorial-sheet'),
+    journalModal: document.getElementById('journal-modal'),
+    btnCloseJournal: document.getElementById('btn-close-journal'),
+    journalTimelineList: document.getElementById('journal-timeline-list'),
+    btnClearJournal: document.getElementById('btn-clear-journal'),
     toastNotice: document.getElementById('toast-notice')
   };
 
@@ -138,17 +150,46 @@
       });
     }
 
-    // Accessibility: Keyboard Escape key listener to close modal
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && elements.postcardModal.classList.contains('open')) {
-        closePostcardModal();
-      }
-    });
+    // Postcard Export Actions
+    if (elements.btnDownloadPostcard) {
+      elements.btnDownloadPostcard.addEventListener('click', downloadPostcardImage);
+    }
 
-    // Copy Postcard Text
     if (elements.btnCopyPostcardText) {
       elements.btnCopyPostcardText.addEventListener('click', copyPostcardProse);
     }
+
+    // Soul Journal Modal Events
+    if (elements.btnOpenJournal) {
+      elements.btnOpenJournal.addEventListener('click', openJournalModal);
+    }
+
+    if (elements.btnCloseJournal) {
+      elements.btnCloseJournal.addEventListener('click', closeJournalModal);
+    }
+
+    if (elements.journalModal) {
+      elements.journalModal.addEventListener('click', (e) => {
+        if (e.target === elements.journalModal) {
+          closeJournalModal();
+        }
+      });
+    }
+
+    if (elements.btnClearJournal) {
+      elements.btnClearJournal.addEventListener('click', clearJournalRecords);
+    }
+
+    // Accessibility: Keyboard Escape key listener to close modals
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (elements.journalModal && elements.journalModal.classList.contains('open')) {
+          closeJournalModal();
+        } else if (elements.postcardModal && elements.postcardModal.classList.contains('open')) {
+          closePostcardModal();
+        }
+      }
+    });
   }
 
   // Season Switch Handler
@@ -184,20 +225,35 @@
     });
   }
 
-  // Stage Transitions
+  // Stage Transitions with Smooth Out/In and Lock Mechanism
   function goToStage(stageNum) {
-    state.currentStage = stageNum;
+    if (state.isTransitioning || state.currentStage === stageNum) return;
+    state.isTransitioning = true;
 
-    Object.keys(elements.stages).forEach((num) => {
-      const stageEl = elements.stages[num];
-      if (parseInt(num, 10) === stageNum) {
-        stageEl.classList.add('active');
-      } else {
-        stageEl.classList.remove('active');
+    const prevStageEl = elements.stages[state.currentStage];
+    const nextStageEl = elements.stages[stageNum];
+
+    if (prevStageEl && prevStageEl.classList.contains('active')) {
+      prevStageEl.classList.add('is-leaving');
+      setTimeout(() => {
+        prevStageEl.classList.remove('active', 'is-leaving');
+        state.currentStage = stageNum;
+        if (nextStageEl) {
+          nextStageEl.classList.add('active');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+          state.isTransitioning = false;
+        }, 300);
+      }, 450);
+    } else {
+      state.currentStage = stageNum;
+      if (nextStageEl) {
+        nextStageEl.classList.add('active');
       }
-    });
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      state.isTransitioning = false;
+    }
   }
 
   // =========================================================================
@@ -463,6 +519,12 @@
     `;
 
     elements.readingContainer.innerHTML = html;
+
+    // Automatically record reading to Soul Journal (avoid duplicate saves for same session)
+    if (!state.sessionRecorded && state.pickedCards.length === 3) {
+      saveSessionToJournal(seasonData, topicData, today);
+      state.sessionRecorded = true;
+    }
   }
 
   /**
@@ -488,28 +550,204 @@
   }
 
   // =========================================================================
+  // Soul Journal Storage & State Machine
+  // =========================================================================
+  function saveSessionToJournal(seasonData, topicData, today) {
+    const dateFormatted = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+    const record = {
+      id: 'journal_' + Date.now(),
+      timestamp: today.toISOString(),
+      dateFormatted: dateFormatted,
+      season: state.season,
+      seasonName: seasonData.name,
+      seasonEn: seasonData.en,
+      topic: state.topic,
+      topicTitle: topicData.title,
+      blessing: seasonData.blessing,
+      cards: state.pickedCards.map((c) => ({
+        id: c.cardData.id,
+        name: c.cardData.name,
+        enName: c.cardData.enName,
+        roman: c.cardData.roman,
+        isReversed: c.isReversed,
+        posTitle: c.position.title,
+        posSub: c.position.subtitle,
+        keyword: c.isReversed ? c.cardData.reversed.keyword : c.cardData.upright.keyword
+      }))
+    };
+
+    const list = getJournalRecords();
+    list.unshift(record);
+    if (list.length > 20) {
+      list.length = 20;
+    }
+
+    try {
+      localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(list));
+    } catch (e) {
+      console.info('無法寫入本機手札紀錄:', e);
+    }
+  }
+
+  function getJournalRecords() {
+    try {
+      const raw = localStorage.getItem(JOURNAL_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  function openJournalModal() {
+    renderJournalTimeline();
+    elements.journalModal.classList.add('open');
+    elements.journalModal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeJournalModal() {
+    elements.journalModal.classList.remove('open');
+    elements.journalModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function renderJournalTimeline() {
+    const records = getJournalRecords();
+    const container = elements.journalTimelineList;
+    if (!container) return;
+
+    if (!records || records.length === 0) {
+      container.innerHTML = `
+        <div class="journal-empty-hint font-serif">
+          手札尚是一片靜謐的留白，<br>等待妳寫下第一頁星光。
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = records.map((rec) => {
+      const cardsHtml = (rec.cards || []).map((c) => `
+        <div class="journal-card-chip font-serif">
+          <span class="chip-pos">【${c.posTitle}】</span>
+          <span>${c.name}</span>
+          <span class="chip-state">(${c.isReversed ? '逆' : '正'})</span>
+        </div>
+      `).join('');
+
+      return `
+        <div class="journal-timeline-card" data-record-id="${rec.id}">
+          <div class="journal-card-top font-sans">
+            <div class="journal-date font-sans">${rec.dateFormatted}</div>
+            <div class="journal-tags">
+              <span class="journal-tag font-sans">${rec.seasonName}</span>
+              <span class="journal-tag font-sans">${rec.topicTitle}</span>
+            </div>
+          </div>
+          <div class="journal-cards-row font-serif">
+            ${cardsHtml}
+          </div>
+          <div class="journal-card-bottom">
+            <span class="journal-blessing-excerpt font-serif">“${rec.blessing || ''}”</span>
+            <button class="journal-replay-btn font-serif" data-record-id="${rec.id}">重溫籤詩</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Bind clicks to open historical postcard
+    container.querySelectorAll('.journal-timeline-card').forEach((cardEl) => {
+      cardEl.addEventListener('click', () => {
+        const id = cardEl.dataset.recordId;
+        const targetRec = records.find((r) => String(r.id) === String(id));
+        if (targetRec) {
+          closeJournalModal();
+          openPostcardModal(targetRec);
+        }
+      });
+    });
+  }
+
+  function clearJournalRecords() {
+    const records = getJournalRecords();
+    if (!records || records.length === 0) {
+      showToast('目前尚無手札紀錄');
+      return;
+    }
+
+    const confirmed = window.confirm('確定要清空所有時光手札嗎？此動作無法復原。');
+    if (confirmed) {
+      try {
+        localStorage.removeItem(JOURNAL_STORAGE_KEY);
+      } catch (e) {}
+      renderJournalTimeline();
+      showToast('時光手札已回歸純淨留白');
+    }
+  }
+
+  // =========================================================================
   // Postcard Modal & Export
   // =========================================================================
-  function openPostcardModal() {
-    const seasonData = window.SEASONS_DATA[state.season];
-    const topicData = window.TOPICS_DATA[state.topic];
-    const [c1, c2, c3] = state.pickedCards;
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+  function openPostcardModal(recordData = null) {
+    let seasonData, topicTitle, cards, blessing, dateStr;
+
+    if (recordData) {
+      seasonData = window.SEASONS_DATA[recordData.season] || window.SEASONS_DATA.spring;
+      topicTitle = recordData.topicTitle;
+      cards = recordData.cards;
+      blessing = recordData.blessing;
+      dateStr = recordData.dateFormatted;
+    } else {
+      seasonData = window.SEASONS_DATA[state.season];
+      topicTitle = window.TOPICS_DATA[state.topic].title;
+      cards = state.pickedCards.map((c) => ({
+        id: c.cardData.id,
+        name: c.cardData.name,
+        roman: c.cardData.roman,
+        isReversed: c.isReversed,
+        posTitle: c.position.title,
+        keyword: c.isReversed ? c.cardData.reversed.keyword : c.cardData.upright.keyword
+      }));
+      blessing = seasonData.blessing;
+      const today = new Date();
+      dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+    }
+
+    // Cache current active payload for copy & image export
+    state.currentPostcardPayload = {
+      seasonData,
+      topicTitle,
+      cards,
+      blessing,
+      dateStr
+    };
+
+    // Render trio visual cards with mini line SVGs
+    const trioVisualHtml = cards.map((c) => {
+      const svg = window.CARD_SVGS['card_' + c.id] || '';
+      return `
+        <div class="postcard-mini-card">
+          <span class="mini-pos-tag font-serif">【${c.posTitle}】</span>
+          <span class="mini-roman font-serif">${c.roman || ''}</span>
+          <div class="mini-svg-wrap ${c.isReversed ? 'is-reversed' : ''}">
+            ${svg}
+          </div>
+          <span class="mini-card-name font-serif">${c.name}</span>
+          <span class="mini-orientation-badge font-sans">${c.isReversed ? '逆位' : '正位'}</span>
+        </div>
+      `;
+    }).join('');
 
     elements.postcardEditorialSheet.innerHTML = `
       <div class="postcard-subtitle font-sans">${seasonData.en}・${seasonData.name}</div>
       <h3 class="postcard-title font-serif">四季の籤詩・謐夜迴響</h3>
-      <div class="postcard-cards-line font-serif">
-        溯源【${c1.cardData.name}${c1.isReversed ? '・逆' : '・正'}】 — 
-        當下【${c2.cardData.name}${c2.isReversed ? '・逆' : '・正'}】 — 
-        微光【${c3.cardData.name}${c3.isReversed ? '・逆' : '・正'}】
+      <div class="postcard-trio-visual">
+        ${trioVisualHtml}
       </div>
       <div class="postcard-quote-body font-serif">
-        ${seasonData.blessing}
+        ${blessing}
       </div>
       <div class="postcard-footer-seal font-sans">
-        ${dateStr}・探問「${topicData.title}」・謐夜深思
+        ${dateStr}・探問「${topicTitle}」・謐夜深思
       </div>
     `;
 
@@ -522,23 +760,58 @@
     elements.postcardModal.setAttribute('aria-hidden', 'true');
   }
 
+  function downloadPostcardImage() {
+    const sheet = elements.postcardEditorialSheet;
+    const btn = elements.btnDownloadPostcard;
+    const btnText = elements.btnDownloadText;
+    if (!sheet) return;
+
+    if (typeof window.html2canvas !== 'function') {
+      showToast('圖片匯出模組尚未載入，請稍候重試');
+      return;
+    }
+
+    const originalText = btnText ? btnText.textContent : '儲存籤詩圖片';
+    if (btnText) btnText.textContent = '正在凝印籤詩……';
+    if (btn) btn.disabled = true;
+
+    window.html2canvas(sheet, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false
+    }).then((canvas) => {
+      const now = new Date();
+      const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const link = document.createElement('a');
+      link.download = `四季の籤詩_${dateCode}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('籤詩圖卡已珍藏至裝置');
+    }).catch((err) => {
+      console.error('明信片凝印失敗:', err);
+      showToast('圖卡凝印失敗，請嘗試複製文字');
+    }).finally(() => {
+      if (btnText) btnText.textContent = originalText;
+      if (btn) btn.disabled = false;
+    });
+  }
+
   function copyPostcardProse() {
-    const seasonData = window.SEASONS_DATA[state.season];
-    const topicData = window.TOPICS_DATA[state.topic];
-    const [c1, c2, c3] = state.pickedCards;
-    const today = new Date();
-    const dateStr = `${today.getFullYear()} 年 ${today.getMonth() + 1} 月 ${today.getDate()} 日`;
+    const payload = state.currentPostcardPayload;
+    if (!payload) return;
 
+    const [c1, c2, c3] = payload.cards;
     const copyText = `【四季の籤詩・謐夜塔羅】
-時光印記：${dateStr}・${seasonData.name}
-探問心境：${topicData.title}
+時光印記：${payload.dateStr}・${payload.seasonData.name}
+探問心境：${payload.topicTitle}
 
-溯源：${c1.cardData.name} (${c1.isReversed ? '逆位' : '正位'}) —— ${c1.isReversed ? c1.cardData.reversed.keyword : c1.cardData.upright.keyword}
-當下：${c2.cardData.name} (${c2.isReversed ? '逆位' : '正位'}) —— ${c2.isReversed ? c2.cardData.reversed.keyword : c2.cardData.upright.keyword}
-微光：${c3.cardData.name} (${c3.isReversed ? '逆位' : '正位'}) —— ${c3.isReversed ? c3.cardData.reversed.keyword : c3.cardData.upright.keyword}
+溯源：${c1.name} (${c1.isReversed ? '逆位' : '正位'}) —— ${c1.keyword || ''}
+當下：${c2.name} (${c2.isReversed ? '逆位' : '正位'}) —— ${c2.keyword || ''}
+微光：${c3.name} (${c3.isReversed ? '逆位' : '正位'}) —— ${c3.keyword || ''}
 
 給妳的季節寄語：
-${seasonData.blessing}
+${payload.blessing}
 
 —— 願妳在四季更迭的風裡，聽見心底最初的潮聲。`;
 
@@ -578,6 +851,8 @@ ${seasonData.blessing}
   function resetState() {
     state.pickedCards = [];
     state.revealedIndices = new Set();
+    state.sessionRecorded = false;
+    state.currentPostcardPayload = null;
     goToStage(1);
   }
 
