@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="spring">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>四季の籤詩・謐夜塔羅 | Le Voyage Intérieur</title>
+
+  <!-- Google Fonts Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&family=Noto+Sans+TC:wght@200;300;400;500&family=Noto+Serif+TC:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Dynamic Atmospheric Particle Canvas -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- High-fashion Noise Texture Overlay -->
+  <div class="noise-overlay" aria-hidden="true"></div>
+
+  <!-- Main Application Shell -->
+  <main class="app-container">
+
+    <!-- Top Navigation & Seasonal Atmosphere Switcher -->
+    <header class="header-bar">
+      <div class="brand-mark">
+        <span class="brand-title font-serif">四季の籤詩</span>
+        <span class="brand-sub font-sans">Le Voyage Intérieur</span>
+      </div>
+
+      <div style="display: flex; align-items: center;">
+        <nav class="season-switcher" aria-label="季節主題選擇">
+          <button class="season-btn active" data-season="spring" title="切換至 春・初綻">
+            春・初綻
+          </button>
+          <button class="season-btn" data-season="summer" title="切換至 夏・仲夜">
+            夏・仲夜
+          </button>
+          <button class="season-btn" data-season="autumn" title="切換至 秋・暮光">
+            秋・暮光
+          </button>
+          <button class="season-btn" data-season="winter" title="切換至 冬・初雪">
+            冬・初雪
+          </button>
+        </nav>
+
+        <button id="sound-toggle-btn" class="sound-btn" title="切換音效" aria-label="切換音效">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================================================================
+         Stage 1: Season & Topic Selection
+         ====================================================================== -->
+    <section id="stage-1" class="stage-section stage-selection active">
+      <span class="editorial-tag font-sans">ÉTAPE I ・ LE VOYAGE INTÉRIEUR</span>
+      <h1 class="stage-hero-title font-serif">四季更迭・靈魂深處的微光探問</h1>
+      <p class="stage-hero-verse font-serif">
+        在時光的長河裡，每一個季節都在悄悄替妳寫詩。<br>
+        請挑選一處心靈願意棲息的港灣，讓我們撥開喧囂，靜聽命運的低語。
+      </p>
+
+      <div class="topic-grid">
+        <!-- Topic 1: 情感與羈絆 -->
+        <article class="topic-card selected" data-topic="love">
+          <div class="topic-num font-sans">01 / AMOUR</div>
+          <h2 class="topic-title font-serif">情感與羈絆</h2>
+          <p class="topic-desc font-sans">愛情、暗戀、關係走向</p>
+          <p class="topic-whisper font-serif">“關於那些在心頭盤桓的名字，與指尖欲言又止的溫度……”</p>
+        </article>
+
+        <!-- Topic 2: 自我與靈魂 -->
+        <article class="topic-card" data-topic="self">
+          <div class="topic-num font-sans">02 / ÂME</div>
+          <h2 class="topic-title font-serif">自我與靈魂</h2>
+          <p class="topic-desc font-sans">內在探索、迷惘、情緒安放</p>
+          <p class="topic-whisper font-serif">“在無人打擾的深夜，聽聽那個躲在喧囂背後、有些疲憊的自己……”</p>
+        </article>
+
+        <!-- Topic 3: 事業與方向 -->
+        <article class="topic-card" data-topic="career">
+          <div class="topic-num font-sans">03 / DESTIN</div>
+          <h2 class="topic-title font-serif">事業與方向</h2>
+          <p class="topic-desc font-sans">工作抉擇、未來藍圖、自我實現</p>
+          <p class="topic-whisper font-serif">“撥開眼前的煙雲，望向地平線上那一抹尚未破曉的微光……”</p>
+        </article>
+
+        <!-- Topic 4: 今日的溫柔指引 -->
+        <article class="topic-card" data-topic="daily">
+          <div class="topic-num font-sans">04 / QUOTIDIEN</div>
+          <h2 class="topic-title font-serif">今日的溫柔指引</h2>
+          <p class="topic-desc font-sans">無特定問題，純粹接收當下的訊息</p>
+          <p class="topic-whisper font-serif">“放下所有預設的目的，如同一枚落葉隨風飄落，安靜接收今日的風向……”</p>
+        </article>
+      </div>
+
+      <button id="btn-start-meditation" class="btn-primary font-serif">
+        凝神・步入靜謐
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </section>
+
+    <!-- ======================================================================
+         Stage 2: Meditation & Shuffling
+         ====================================================================== -->
+    <section id="stage-2" class="stage-section stage-meditation">
+      <span class="editorial-tag font-sans">ÉTAPE II ・ MÉDITATION & RITUEL</span>
+
+      <!-- Breathing Guidance Box -->
+      <div id="breathing-box" class="breathing-box">
+        <div class="breathing-circle-halo">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 3"></path>
+          </svg>
+        </div>
+        <p class="breathing-verse font-serif">
+          閉上雙眼，深呼吸三次……<br>
+          讓白晝的紛擾在心底緩緩沉降，聽見最初的潮聲。
+        </p>
+        <button id="btn-ready-pick" class="btn-primary font-serif">
+          我準備好了
+        </button>
+      </div>
+
+      <!-- Spread Section (Hidden initially, shown after breathing) -->
+      <div id="spread-section" style="display: none; width: 100%;">
+        <div id="guide-banner-text" class="selection-guide-banner font-serif">
+          請以直覺選取第 1 張牌 —— 探問妳的【溯源】(過往之因・靈魂的伏筆)
+        </div>
+
+        <div class="selection-progress-dots">
+          <span class="prog-dot"></span>
+          <span class="prog-dot"></span>
+          <span class="prog-dot"></span>
+        </div>
+
+        <div class="cards-spread-container">
+          <div id="spread-deck" class="cards-spread-deck">
+            <!-- Mystery cards populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         Stage 3: Card Reveal (3D Flip Spread)
+         ====================================================================== -->
+    <section id="stage-3" class="stage-section stage-reveal">
+      <span class="editorial-tag font-sans">ÉTAPE III ・ RÉVÉLATION DES ARCANES</span>
+      <h1 class="stage-hero-title font-serif">溯源・當下・微光</h1>
+      <p class="stage-hero-verse font-serif" style="margin-bottom: 24px;">
+        命運的三重視野已經降臨，請依序輕觸翻開牌面。
+      </p>
+
+      <div id="spread-slots-grid" class="spread-slots-grid">
+        <!-- 3-Card 3D slots populated dynamically -->
+      </div>
+
+      <button id="btn-view-reading" class="btn-primary font-serif" style="display: none;">
+        細讀命運的籤詩
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </section>
+
+    <!-- ======================================================================
+         Stage 4: Poetic Reading & Reflection
+         ====================================================================== -->
+    <section id="stage-4" class="stage-section stage-reading">
+      <div id="reading-container">
+        <!-- Populated dynamically with high-literary synthesized essay and card breakdown -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================================
+       Postcard Modal (珍藏籤詩)
+       ====================================================================== -->
+  <div id="postcard-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="postcard-modal">
+      <button id="btn-close-postcard" class="postcard-close-btn" aria-label="關閉視窗">&times;</button>
+      
+      <div id="postcard-editorial-sheet" class="postcard-editorial-sheet">
+        <!-- Dynamically injected postcard content -->
+      </div>
+
+      <div style="text-align: center;">
+        <button id="btn-copy-postcard-text" class="btn-primary font-serif">
+          複製籤詩文案
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-notice" class="toast-notice font-sans">已珍藏至剪貼簿</div>
+
+  <!-- Application Logic & Assets -->
+  <script src="js/tarot-data.js"></script>
+  <script src="js/card-svgs.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
