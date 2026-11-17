@@ -126,6 +126,35 @@ class SeasonalParticles {
     });
   }
 
+  spawnBurst(x, y, count = 14) {
+    if (this.reducedMotion) return;
+    const colorPool = {
+      spring: ['240, 196, 200', '201, 168, 106'],
+      summer: ['212, 175, 55', '226, 232, 240'],
+      autumn: ['200, 122, 91', '214, 168, 110'],
+      winter: ['185, 210, 222', '255, 255, 255']
+    };
+    const colors = colorPool[this.season] || ['201, 168, 106', '255, 255, 255'];
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.35;
+      const speed = 0.8 + Math.random() * 1.9;
+      if (this.trailParticles.length > 72) {
+        this.trailParticles.shift();
+      }
+      this.trailParticles.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 10,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.35,
+        size: 1.5 + Math.random() * 2.4,
+        life: 1.0,
+        decay: 0.018 + Math.random() * 0.01,
+        rgb: colors[i % colors.length]
+      });
+    }
+  }
+
   createParticles() {
     this.particles = [];
     const baseCount = Math.min(Math.floor((this.width * this.height) / 21000), 58);

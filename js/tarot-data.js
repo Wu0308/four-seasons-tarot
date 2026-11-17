@@ -622,19 +622,40 @@ window.SINGLE_SPREAD_POSITION = {
 
 window.SEASON_EDITORIAL_META = {
   "spring": {
-    "edition": "N° I ・ PRINTEMPS",
-    "railVerse": "春風拂過初綻的枝頭・萬物皆有裂隙與微光"
+    "edition": "VOL. I ・ VERNAL BLOOM",
+    "railVerse": "春風拂過初綻的枝頭・萬物皆有裂隙與微光",
+    "invocation": "請如春芽般安靜吐納，讓塵囂隨微雨沉落，聽見最初的悸動……"
   },
   "summer": {
-    "edition": "N° II ・ SONGE D'ÉTÉ",
-    "railVerse": "仲夜星河垂落深海・在靜默中聽見潮汐的迴響"
+    "edition": "VOL. II ・ MIDNIGHT AURA",
+    "railVerse": "仲夜星河垂落深海・在靜默中聽見潮汐的迴響",
+    "invocation": "於仲夜星河之下輕緩呼吸，將懸而未決的心緒交付予深海潮汐……"
   },
   "autumn": {
-    "edition": "N° III ・ CRÉPUSCULE",
-    "railVerse": "暮光穿過琥珀色的落葉・歲月將心事釀成溫柔"
+    "edition": "VOL. III ・ AMBER TWILIGHT",
+    "railVerse": "暮光穿過琥珀色的落葉・歲月將心事釀成溫柔",
+    "invocation": "隨暮色深吸一口微涼晚風，讓紛繁念頭如落葉輕輕歸於平靜……"
   },
   "winter": {
-    "edition": "N° IV ・ GIVRE BLANC",
-    "railVerse": "初雪覆蓋無聲的荒原・所有的沉睡皆為破曉而準備"
+    "edition": "VOL. IV ・ SILENT FROST",
+    "railVerse": "初雪覆蓋無聲的荒原・所有的沉睡皆為破曉而準備",
+    "invocation": "在落雪覆蓋天地的純白寂靜中吐納，讓靈魂凝聽最真實的回聲……"
   }
 };
+
+window.SPREAD_ARCANA_SEAT_HINTS = [
+  { roman: "I", whisper: "晨星初現之席 ・ 跟隨妳最先觸動的微光" },
+  { roman: "II", whisper: "霧靄之席 ・ 答案正藏於尚未言明之處" },
+  { roman: "III", whisper: "風起之席 ・ 傾聽胸口輕微卻篤定的迴響" },
+  { roman: "IV", whisper: "琥珀之席 ・ 封存著一段等待舒展的伏筆" },
+  { roman: "V", whisper: "潮汐之席 ・ 如水般柔順地流向此刻心意" },
+  { roman: "VI", whisper: "微光之席 ・ 緣分的絲線正悄悄向妳靠攏" },
+  { roman: "VII", whisper: "星軌中軸 ・ 內心深處與宇宙呼吸的交會點" },
+  { roman: "VIII", whisper: "鏡湖中軸 ・ 映照出最真實不偽裝的自己" },
+  { roman: "IX", whisper: "弦月之席 ・ 柔和照亮夜色裡未說出口的念想" },
+  { roman: "X", whisper: "年輪之席 ・ 歲月沉澱下來的靜默與答案" },
+  { roman: "XI", whisper: "霜花之席 ・ 澄澈純淨，無須刻意用力追尋" },
+  { roman: "XII", whisper: "餘暉之席 ・ 溫柔安放所有掛懷與遲疑" },
+  { roman: "XIII", whisper: "破曉之席 ・ 雲層後方正醞釀新的微光" },
+  { roman: "XIV", whisper: "歸途之席 ・ 繞過遠路後終將抵達的寧靜" }
+];

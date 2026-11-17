@@ -28,6 +28,9 @@ class BgmPlayer {
     this.isPlaying = false;
     this.userExplicitlyPaused = false;
     this.hasUnlockedAutoplay = false;
+    this.audioCtx = null;
+    this.noiseBuffer = null;
+    this.lastHoverTickTime = 0;
 
     // Dual audio channel architecture for seamless 0.8s / 1.0s crossfading
     this.channelA = new Audio();
@@ -250,10 +253,230 @@ class BgmPlayer {
     });
   }
 
-  // Backward-compatibility safe stubs for previous synthesizer methods
-  playChime() {}
-  playFlip() {}
-  playBreeze() {}
+  // =========================================================================
+  // Tactile Paper & Crystal Micro-SFX Synthesizer (Web Audio API)
+  // =========================================================================
+  ensureAudioContext() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+
+    if (!this.audioCtx) {
+      try {
+        this.audioCtx = new AudioCtx();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume().catch(() => {});
+    }
+
+    if (!this.noiseBuffer && this.audioCtx) {
+      const sampleRate = this.audioCtx.sampleRate || 44100;
+      const length = Math.floor(sampleRate * 1.2);
+      const buffer = this.audioCtx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < length; i++) {
+        const white = Math.random() * 2 - 1;
+        // Soft pink-tinted cotton paper noise
+        data[i] = (lastOut + 0.08 * white) / 1.08;
+        lastOut = data[i];
+      }
+      this.noiseBuffer = buffer;
+    }
+
+    return this.audioCtx;
+  }
+
+  getSfxGainScale() {
+    if (this.userExplicitlyPaused) return 0;
+    return Math.max(0.25, Math.min(1, this.targetVolume / 0.38));
+  }
+
+  playShuffle() {
+    if (this.userExplicitlyPaused) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx || !this.noiseBuffer) return;
+
+    const scale = this.getSfxGainScale();
+    const now = ctx.currentTime;
+
+    for (let i = 0; i < 6; i++) {
+      const start = now + i * 0.045;
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(920 + i * 130, start);
+      filter.Q.setValueAtTime(1.8, start);
+
+      const gain = ctx.createGain();
+      const peak = 0.065 * scale;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(peak, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.065);
+
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      src.start(start, (i * 0.11) % 0.6, 0.08);
+    }
+  }
+
+  playHoverTick(pitchOffset = 0) {
+    if (this.userExplicitlyPaused) return;
+    const nowMs = performance.now();
+    if (nowMs - this.lastHoverTickTime < 55) return;
+    this.lastHoverTickTime = nowMs;
+
+    const ctx = this.ensureAudioContext();
+    if (!ctx || !this.noiseBuffer) return;
+
+    const scale = this.getSfxGainScale();
+    const now = ctx.currentTime;
+
+    // Tactile cotton paper edge brush
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1400 + pitchOffset * 35, now);
+    filter.Q.setValueAtTime(2.6, now);
+
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.0001, now);
+    nGain.gain.linearRampToValueAtTime(0.032 * scale, now + 0.008);
+    nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.048);
+
+    src.connect(filter);
+    filter.connect(nGain);
+    nGain.connect(ctx.destination);
+    src.start(now, Math.random() * 0.5, 0.06);
+
+    // Subtle soft harmonic wooden/crystal overtone
+    const freq = 420 * Math.pow(2, pitchOffset / 24);
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+
+    const oGain = ctx.createGain();
+    oGain.gain.setValueAtTime(0.0001, now);
+    oGain.gain.linearRampToValueAtTime(0.014 * scale, now + 0.008);
+    oGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+
+    osc.connect(oGain);
+    oGain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
+
+  playChime(stepIndex = 0) {
+    if (this.userExplicitlyPaused) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    const scale = this.getSfxGainScale();
+    const now = ctx.currentTime;
+    const notes = [528, 660, 792];
+    const baseFreq = notes[Math.abs(stepIndex) % notes.length];
+
+    [1, 2].forEach((mult, idx) => {
+      const osc = ctx.createOscillator();
+      osc.type = idx === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(baseFreq * mult, now);
+
+      const gain = ctx.createGain();
+      const peak = (idx === 0 ? 0.055 : 0.018) * scale;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(peak, now + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (idx === 0 ? 1.35 : 0.85));
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 1.4);
+    });
+  }
+
+  playFlip() {
+    if (this.userExplicitlyPaused) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx || !this.noiseBuffer) return;
+
+    const scale = this.getSfxGainScale();
+    const now = ctx.currentTime;
+
+    // Card air-turn whoosh
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.setValueAtTime(1.4, now);
+    filter.frequency.setValueAtTime(380, now);
+    filter.frequency.exponentialRampToValueAtTime(1050, now + 0.09);
+    filter.frequency.exponentialRampToValueAtTime(460, now + 0.22);
+
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.0001, now);
+    nGain.gain.linearRampToValueAtTime(0.08 * scale, now + 0.045);
+    nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+
+    src.connect(filter);
+    filter.connect(nGain);
+    nGain.connect(ctx.destination);
+    src.start(now, 0.1, 0.26);
+
+    // Delicate foil glint harmonic
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now + 0.05);
+
+    const oGain = ctx.createGain();
+    oGain.gain.setValueAtTime(0.0001, now + 0.05);
+    oGain.gain.linearRampToValueAtTime(0.022 * scale, now + 0.08);
+    oGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+
+    osc.connect(oGain);
+    oGain.connect(ctx.destination);
+    osc.start(now + 0.05);
+    osc.stop(now + 0.68);
+  }
+
+  playBreeze() {
+    if (this.userExplicitlyPaused) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx || !this.noiseBuffer) return;
+
+    const scale = this.getSfxGainScale();
+    const now = ctx.currentTime;
+
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.setValueAtTime(1.1, now);
+    filter.frequency.setValueAtTime(260, now);
+    filter.frequency.exponentialRampToValueAtTime(580, now + 0.42);
+    filter.frequency.exponentialRampToValueAtTime(220, now + 0.92);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.075 * scale, now + 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.95);
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now, 0, 1.0);
+  }
+
   toggleMute() {
     return !this.toggle();
   }

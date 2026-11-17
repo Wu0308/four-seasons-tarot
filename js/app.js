@@ -30,7 +30,10 @@
     galleryPeekAll: false,
     editingJournalId: null,
     activeLightboxCard: null,
-    activeLightboxReversed: false
+    activeLightboxReversed: false,
+    postcardRatio: '3:4', // '3:4' | '9:16'
+    activeWaveIndex: -1,
+    isShufflingDeck: false
   };
 
   // DOM Elements Cache
@@ -54,11 +57,15 @@
     btnStartMeditation: document.getElementById('btn-start-meditation'),
     meditationWhisperEcho: document.getElementById('meditation-whisper-echo'),
     breathingBox: document.getElementById('breathing-box'),
+    breathingSeasonInvocation: document.getElementById('breathing-season-invocation'),
     btnReadyPick: document.getElementById('btn-ready-pick'),
     spreadSection: document.getElementById('spread-section'),
+    ritualAltarSlots: document.getElementById('ritual-altar-slots'),
     spreadDeck: document.getElementById('spread-deck'),
     guideBannerText: document.getElementById('guide-banner-text'),
+    spreadHoverWhisper: document.getElementById('spread-hover-whisper'),
     selectionProgressDots: document.getElementById('selection-progress-dots'),
+    btnReshuffleDeck: document.getElementById('btn-reshuffle-deck'),
     stage3HeroTitle: document.getElementById('stage3-hero-title'),
     stage3HeroVerse: document.getElementById('stage3-hero-verse'),
     spreadSlotsGrid: document.getElementById('spread-slots-grid'),
@@ -66,6 +73,7 @@
     readingContainer: document.getElementById('reading-container'),
     postcardModal: document.getElementById('postcard-modal'),
     btnClosePostcard: document.getElementById('btn-close-postcard'),
+    postcardRatioBtns: document.querySelectorAll('.postcard-ratio-btn'),
     btnDownloadPostcard: document.getElementById('btn-download-postcard'),
     btnDownloadText: document.getElementById('btn-download-text'),
     btnCopyPostcardText: document.getElementById('btn-copy-postcard-text'),
@@ -236,6 +244,14 @@
       });
     }
 
+    if (elements.btnReshuffleDeck) {
+      elements.btnReshuffleDeck.addEventListener('click', () => {
+        reshuffleMysteryDeck();
+      });
+    }
+
+    setupSpreadDeckWaveInteraction();
+
     if (elements.btnViewReading) {
       elements.btnViewReading.addEventListener('click', () => {
         goToStage(4);
@@ -283,6 +299,14 @@
         }
       });
     }
+
+    elements.postcardRatioBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const ratio = btn.dataset.ratio === '9:16' ? '9:16' : '3:4';
+        state.postcardRatio = ratio;
+        applyPostcardRatioClass();
+      });
+    });
 
     if (elements.btnDownloadPostcard) {
       elements.btnDownloadPostcard.addEventListener('click', downloadPostcardImage);
@@ -376,7 +400,8 @@
       state.particles.setSeason(seasonKey);
     }
 
-    if (state.currentStage === 2) {
+    if (state.currentStage === 2 && state.meditationStep === 'picking') {
+      renderRitualAltarSlots();
       renderMysteryCardsSpread();
     } else if (state.currentStage === 3) {
       render3DRevealSlots();
@@ -398,6 +423,9 @@
     if (meta) {
       if (elements.railEditionText) elements.railEditionText.textContent = meta.edition;
       if (elements.railVerseText) elements.railVerseText.textContent = meta.railVerse;
+      if (elements.breathingSeasonInvocation && meta.invocation) {
+        elements.breathingSeasonInvocation.textContent = meta.invocation;
+      }
     }
   }
 
@@ -440,8 +468,10 @@
   }
 
   // =========================================================================
-  // Stage 2: Meditation, Shuffling & Parabolic Arc Fan-Out
+  // Stage 2: Meditation, Shuffling & Sympathetic Wave Arc Selection
   // =========================================================================
+  const DEFAULT_SPREAD_WHISPER = '以指尖輕觸掃過牌弧，停駐在心弦共鳴的那一席';
+
   function getTargetPickCount() {
     return state.spreadMode === 'single' ? 1 : 3;
   }
@@ -450,10 +480,14 @@
     state.meditationStep = 'breathing';
     state.pickedCards = [];
     state.revealedIndices = new Set();
+    state.activeWaveIndex = -1;
+    state.isShufflingDeck = false;
 
+    elements.breathingBox.classList.remove('is-exiting-breathing');
     elements.breathingBox.style.display = 'block';
     elements.spreadSection.style.display = 'none';
     elements.btnReadyPick.style.opacity = '1';
+    elements.btnReadyPick.disabled = false;
 
     if (elements.meditationWhisperEcho) {
       if (state.userWhisper) {
@@ -465,6 +499,7 @@
     }
 
     renderProgressDots();
+    renderRitualAltarSlots();
     updatePickProgress(0);
   }
 
@@ -474,31 +509,193 @@
     elements.selectionProgressDots.innerHTML = Array.from({ length: count }, () => '<span class="prog-dot"></span>').join('');
   }
 
-  function revealSpreadDeck() {
-    state.meditationStep = 'picking';
-    elements.breathingBox.style.display = 'none';
-    elements.spreadSection.style.display = 'block';
+  function renderRitualAltarSlots() {
+    const container = elements.ritualAltarSlots;
+    if (!container) return;
 
-    renderMysteryCardsSpread();
-    updatePickInstruction(0);
+    const positions = state.spreadMode === 'single'
+      ? [window.SINGLE_SPREAD_POSITION || window.SPREAD_POSITIONS[1]]
+      : window.SPREAD_POSITIONS;
+    const romans = ['I', 'II', 'III'];
+    const backSvg = window.CARD_SVGS['back_' + state.season] || window.CARD_SVGS['back_spring'];
+    const pickedCount = state.pickedCards.length;
+
+    container.innerHTML = positions.map((pos, idx) => {
+      const isFilled = idx < pickedCount;
+      const isActive = idx === pickedCount && pickedCount < positions.length;
+      const cls = isFilled ? 'filled' : (isActive ? 'active-target' : '');
+      const stateLabel = isFilled ? '已落座' : (isActive ? '感應中' : '待引渡');
+      const innerHtml = isFilled
+        ? backSvg
+        : `<span class="altar-slot-num font-serif">${romans[idx] || (idx + 1)}</span>`;
+
+      return `
+        <div class="altar-slot ${cls}" data-slot-idx="${idx}">
+          <div class="altar-slot-card">${innerHtml}</div>
+          <span class="altar-slot-label font-serif">【${pos.title}】</span>
+          <span class="altar-slot-state font-sans">${stateLabel}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function revealSpreadDeck() {
+    if (state.meditationStep === 'picking') return;
+    state.meditationStep = 'picking';
+    elements.btnReadyPick.disabled = true;
+
+    window.bgmPlayer?.playBreeze();
+    state.particles?.spawnRipple(window.innerWidth / 2, window.innerHeight * 0.42);
+    elements.breathingBox.classList.add('is-exiting-breathing');
+
+    setTimeout(() => {
+      elements.breathingBox.classList.remove('is-exiting-breathing');
+      elements.breathingBox.style.display = 'none';
+      elements.spreadSection.style.display = 'block';
+
+      if (elements.spreadHoverWhisper) {
+        elements.spreadHoverWhisper.textContent = DEFAULT_SPREAD_WHISPER;
+      }
+
+      renderRitualAltarSlots();
+      renderMysteryCardsSpread();
+      updatePickInstruction(0);
+      window.bgmPlayer?.playShuffle();
+    }, 340);
+  }
+
+  function clearSpreadWaveClasses() {
+    if (!elements.spreadDeck) return;
+    elements.spreadDeck.querySelectorAll('.mystery-card').forEach((card) => {
+      card.classList.remove('wave-focus', 'wave-near-1', 'wave-near-2');
+    });
+    state.activeWaveIndex = -1;
+    if (elements.spreadHoverWhisper && state.pickedCards.length < getTargetPickCount() && !state.isShufflingDeck) {
+      elements.spreadHoverWhisper.textContent = DEFAULT_SPREAD_WHISPER;
+    }
+  }
+
+  function applySpreadWaveAtClientX(clientX) {
+    if (!elements.spreadDeck || state.isShufflingDeck || state.pickedCards.length >= getTargetPickCount()) {
+      return;
+    }
+
+    const cards = Array.from(elements.spreadDeck.querySelectorAll('.mystery-card'));
+    if (!cards.length) return;
+
+    let closestIdx = -1;
+    let closestDist = Infinity;
+
+    cards.forEach((card, idx) => {
+      if (card.classList.contains('picked')) return;
+      const rect = card.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const dist = Math.abs(clientX - centerX);
+      if (dist < rect.width * 0.95 && dist < closestDist) {
+        closestDist = dist;
+        closestIdx = idx;
+      }
+    });
+
+    if (closestIdx === -1) {
+      clearSpreadWaveClasses();
+      return;
+    }
+
+    cards.forEach((card, idx) => {
+      card.classList.remove('wave-focus', 'wave-near-1', 'wave-near-2');
+      if (card.classList.contains('picked')) return;
+      const diff = Math.abs(idx - closestIdx);
+      if (diff === 0) card.classList.add('wave-focus');
+      else if (diff === 1) card.classList.add('wave-near-1');
+      else if (diff === 2) card.classList.add('wave-near-2');
+    });
+
+    if (closestIdx !== state.activeWaveIndex) {
+      state.activeWaveIndex = closestIdx;
+      const parsedSeat = parseInt(cards[closestIdx].dataset.seatIdx, 10);
+      const seatIdx = Number.isNaN(parsedSeat) ? closestIdx : parsedSeat;
+      const hint = window.SPREAD_ARCANA_SEAT_HINTS && window.SPREAD_ARCANA_SEAT_HINTS[seatIdx];
+      if (elements.spreadHoverWhisper && hint) {
+        elements.spreadHoverWhisper.textContent = `第 ${hint.roman} 席 ・ ${hint.whisper}`;
+      }
+      window.bgmPlayer?.playHoverTick(closestIdx - (cards.length - 1) / 2);
+    }
+  }
+
+  function setupSpreadDeckWaveInteraction() {
+    const deck = elements.spreadDeck;
+    if (!deck || deck.dataset.waveBound === 'true') return;
+    deck.dataset.waveBound = 'true';
+
+    deck.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'mouse' || e.pointerType === 'pen') {
+        applySpreadWaveAtClientX(e.clientX);
+      }
+    });
+
+    deck.addEventListener('touchmove', (e) => {
+      if (e.touches && e.touches.length > 0) {
+        applySpreadWaveAtClientX(e.touches[0].clientX);
+      }
+    }, { passive: true });
+
+    deck.addEventListener('pointerleave', () => {
+      clearSpreadWaveClasses();
+    });
+
+    deck.addEventListener('touchend', () => {
+      setTimeout(() => clearSpreadWaveClasses(), 160);
+    }, { passive: true });
+  }
+
+  function reshuffleMysteryDeck() {
+    const targetCount = getTargetPickCount();
+    if (state.isShufflingDeck || state.pickedCards.length >= targetCount) return;
+
+    state.isShufflingDeck = true;
+    clearSpreadWaveClasses();
+    if (elements.btnReshuffleDeck) {
+      elements.btnReshuffleDeck.disabled = true;
+    }
+
+    window.bgmPlayer?.playShuffle();
+    const deckRect = elements.spreadDeck.getBoundingClientRect();
+    state.particles?.spawnRipple(deckRect.left + deckRect.width / 2, deckRect.top + deckRect.height / 2);
+
+    elements.spreadDeck.querySelectorAll('.mystery-card:not(.picked)').forEach((c) => {
+      c.classList.add('is-shuffling');
+    });
+
+    setTimeout(() => {
+      state.isShufflingDeck = false;
+      renderMysteryCardsSpread();
+      if (elements.spreadHoverWhisper) {
+        elements.spreadHoverWhisper.textContent = '牌陣已重新洗鍊，請再次以直覺感應';
+      }
+    }, 380);
   }
 
   function renderMysteryCardsSpread() {
     elements.spreadDeck.innerHTML = '';
     const backSvg = window.CARD_SVGS['back_' + state.season] || window.CARD_SVGS['back_spring'];
 
-    const totalMysteryCards = 14;
+    const totalMysteryCards = Math.max(8, 14 - state.pickedCards.length);
     const center = (totalMysteryCards - 1) / 2;
+    const hints = window.SPREAD_ARCANA_SEAT_HINTS || [];
 
     for (let i = 0; i < totalMysteryCards; i++) {
       const cardEl = document.createElement('div');
       cardEl.className = 'mystery-card';
       cardEl.dataset.index = i;
+      cardEl.dataset.seatIdx = i;
       const offset = i - center;
+      const seatRoman = (hints[i] && hints[i].roman) ? hints[i].roman : String(i + 1);
+
       cardEl.style.setProperty('--arc-offset', offset.toFixed(2));
       cardEl.style.setProperty('--arc-abs', Math.abs(offset).toFixed(2));
       cardEl.style.animationDelay = `${i * 32}ms`;
-      cardEl.innerHTML = backSvg;
+      cardEl.innerHTML = `<span class="mystery-seat-num font-serif">${seatRoman}</span>${backSvg}`;
 
       cardEl.addEventListener('click', () => {
         handleMysteryCardClick(cardEl, i);
@@ -506,15 +703,29 @@
 
       elements.spreadDeck.appendChild(cardEl);
     }
+
+    if (elements.btnReshuffleDeck) {
+      elements.btnReshuffleDeck.disabled = state.pickedCards.length >= getTargetPickCount();
+    }
   }
 
   function handleMysteryCardClick(cardEl) {
     const targetCount = getTargetPickCount();
-    if (state.pickedCards.length >= targetCount || cardEl.classList.contains('picked')) {
+    if (state.isShufflingDeck || state.pickedCards.length >= targetCount || cardEl.classList.contains('picked')) {
       return;
     }
 
+    const pickIdx = state.pickedCards.length;
+    cardEl.classList.remove('wave-focus', 'wave-near-1', 'wave-near-2');
     cardEl.classList.add('picked');
+    state.activeWaveIndex = -1;
+
+    window.bgmPlayer?.playChime(pickIdx);
+    const rect = cardEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    state.particles?.spawnRipple(cx, cy);
+    state.particles?.spawnBurst(cx, cy, 16);
 
     const drawnIds = state.pickedCards.map((p) => p.cardData.id);
     const availableCards = window.TAROT_CARDS.filter((c) => !drawnIds.includes(c.id));
@@ -532,7 +743,12 @@
     });
 
     const currentCount = state.pickedCards.length;
+    renderRitualAltarSlots();
     updatePickProgress(currentCount);
+
+    if (elements.btnReshuffleDeck) {
+      elements.btnReshuffleDeck.disabled = currentCount >= targetCount;
+    }
 
     if (currentCount < targetCount) {
       updatePickInstruction(currentCount);
@@ -540,6 +756,10 @@
       elements.guideBannerText.textContent = state.spreadMode === 'single'
         ? '命運之牌已凝定，正在引渡至時光之席……'
         : '三張命運之牌已凝定，正在引渡至時光之席……';
+
+      if (elements.spreadHoverWhisper) {
+        elements.spreadHoverWhisper.textContent = '靜待三秒，即將為妳揭曉命運的牌面';
+      }
 
       setTimeout(() => {
         goToStage(3);
@@ -658,6 +878,10 @@
     state.revealedIndices.add(idx);
     card3DEl.classList.add('flipped', 'is-drawing');
     if (hintEl) hintEl.textContent = '已揭示・輕觸可放大賞析';
+
+    window.bgmPlayer?.playFlip();
+    const cardRect = card3DEl.getBoundingClientRect();
+    state.particles?.spawnBurst(cardRect.left + cardRect.width / 2, cardRect.top + cardRect.height / 2, 12);
 
     unlockArcanaCard(pickedItem.cardData.id);
 
@@ -1468,8 +1692,14 @@
       : '';
 
     elements.postcardEditorialSheet.innerHTML = `
+      <div class="postcard-crest-ornament" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <circle cx="12" cy="12" r="9" stroke-dasharray="2 3" stroke-opacity="0.65"></circle>
+          <polygon points="12,3 13.3,10.7 21,12 13.3,13.3 12,21 10.7,13.3 3,12 10.7,10.7" fill="currentColor" fill-opacity="0.88"></polygon>
+        </svg>
+      </div>
       <div class="postcard-subtitle font-sans">${seasonData.en}・${seasonData.name}</div>
-      <h3 class="postcard-title font-serif">四季の籤詩・謐夜迴響</h3>
+      <h3 class="postcard-title font-serif">四時詩籤・謐夜迴響</h3>
       ${whisperLineHtml}
       <div class="postcard-trio-visual ${isSingle ? 'single-mode' : ''}">
         ${trioVisualHtml}
@@ -1483,8 +1713,19 @@
       </div>
     `;
 
+    applyPostcardRatioClass();
     elements.postcardModal.classList.add('open');
     elements.postcardModal.setAttribute('aria-hidden', 'false');
+  }
+
+  function applyPostcardRatioClass() {
+    const isTall = state.postcardRatio === '9:16';
+    if (elements.postcardEditorialSheet) {
+      elements.postcardEditorialSheet.classList.toggle('ratio-9-16', isTall);
+    }
+    elements.postcardRatioBtns.forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.ratio === state.postcardRatio);
+    });
   }
 
   function closePostcardModal() {
@@ -1507,8 +1748,11 @@
     if (btnText) btnText.textContent = '正在凝印籤詩……';
     if (btn) btn.disabled = true;
 
+    const exportScale = state.postcardRatio === '9:16' ? 2.5 : 2;
+    const modeTag = state.postcardRatio === '9:16' ? '桌布' : '書籤';
+
     window.html2canvas(sheet, {
-      scale: 2,
+      scale: exportScale,
       useCORS: true,
       backgroundColor: null,
       logging: false
@@ -1516,7 +1760,7 @@
       const now = new Date();
       const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
       const link = document.createElement('a');
-      link.download = `四季の籤詩_${dateCode}.png`;
+      link.download = `四時詩籤_${modeTag}_${dateCode}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       showToast('籤詩圖卡已珍藏至裝置');
@@ -1540,7 +1784,7 @@
     const whisperLine = payload.whisper ? `\n心語寄託：${payload.whisper}` : '';
     const noteLine = payload.note ? `\n\n手札隨筆：\n${payload.note}` : '';
 
-    const copyText = `【四季の籤詩・謐夜塔羅】
+    const copyText = `【四時詩籤・謐夜塔羅】
 時光印記：${payload.dateStr}・${payload.seasonData.name}
 探問心境：${payload.topicTitle}${whisperLine}
 
