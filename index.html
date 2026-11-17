@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>四時詩籤・謐夜塔羅 | The Seasonal Oracle</title>
+  <title>時光詩箋・四季塔羅 | Chronicles of Seasons</title>
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 
   <!-- Google Fonts Preconnect -->
@@ -46,7 +46,7 @@
   <aside class="editorial-side-rail left-rail font-sans" aria-hidden="true">
     <span id="rail-edition-text">VOL. I ・ VERNAL BLOOM</span>
     <span class="rail-divider"></span>
-    <span>THE SEASONAL ORACLE</span>
+    <span>CHRONICLES OF SEASONS</span>
   </aside>
   <aside class="editorial-side-rail right-rail font-serif" aria-hidden="true">
     <span id="rail-verse-text">春風拂過初綻的枝頭・萬物皆有裂隙與微光</span>
@@ -61,34 +61,62 @@
     <!-- Top Navigation & Seasonal Atmosphere Switcher -->
     <header class="header-bar">
       <div class="brand-mark">
-        <svg class="brand-emblem-svg" width="32" height="32" viewBox="0 0 128 128" fill="none" aria-hidden="true">
-          <rect x="8" y="8" width="112" height="112" rx="26" stroke="currentColor" stroke-width="3.2"/>
-          <rect x="17" y="17" width="94" height="94" rx="19" stroke="currentColor" stroke-width="1.4" stroke-opacity="0.55"/>
-          <circle cx="64" cy="64" r="34" stroke="currentColor" stroke-width="1.8" stroke-dasharray="4 5" stroke-opacity="0.72"/>
-          <path d="M 70 43 C 54 44, 44 55, 44 67 C 44 80, 56 89, 71 87 C 59 83, 55 74, 55 64 C 55 54, 60 46, 70 43 Z" fill="currentColor" fill-opacity="0.9"/>
-          <polygon points="71,49 73.2,61.8 86,64 73.2,66.2 71,79 68.8,66.2 56,64 68.8,61.8" fill="currentColor"/>
+        <svg class="brand-emblem-svg" width="34" height="34" viewBox="0 0 128 128" fill="none" aria-hidden="true">
+          <rect x="8" y="8" width="112" height="112" rx="26" stroke="currentColor" stroke-width="2.6"/>
+          <circle cx="64" cy="64" r="37" stroke="currentColor" stroke-width="1.6" stroke-opacity="0.55"/>
+          <line x1="35" y1="35" x2="93" y2="93" stroke="currentColor" stroke-width="1.4" stroke-opacity="0.35"/>
+          <line x1="93" y1="35" x2="35" y2="93" stroke="currentColor" stroke-width="1.4" stroke-opacity="0.35"/>
+          <!-- North: Spring Sakura Petal -->
+          <path class="season-quad quad-spring" d="M 64 41 C 55 36, 53 26, 60.5 20.5 L 64 25 L 67.5 20.5 C 75 26, 73 36, 64 41 Z" fill="currentColor"/>
+          <!-- East: Summer Crescent & Star -->
+          <path class="season-quad quad-summer" d="M 101 55 C 93.5 55.5, 89.5 61, 90 67 C 90.5 72.5, 96 75, 102.5 73.2 C 97 72.2, 95.2 68, 95.2 64 C 95.2 59.8, 97 56.5, 101 55 Z" fill="currentColor"/>
+          <!-- South: Autumn Ginkgo Leaf -->
+          <path class="season-quad quad-autumn" d="M 64 102 C 55 100, 53 92, 61.5 90 L 64 94.5 L 66.5 90 C 75 92, 73 100, 64 102 Z" fill="currentColor"/>
+          <!-- West: Winter Six-Fold Frost Crystal -->
+          <g class="season-quad quad-winter" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <line x1="30" y1="55" x2="30" y2="73"/>
+            <line x1="22.2" y1="59.5" x2="37.8" y2="68.5"/>
+            <line x1="37.8" y1="59.5" x2="22.2" y2="68.5"/>
+          </g>
+          <!-- Center Compass Star -->
+          <polygon points="64,53 66.2,61.8 75,64 66.2,66.2 64,75 61.8,66.2 53,64 61.8,61.8" fill="currentColor"/>
         </svg>
         <div class="brand-text-group">
-          <span class="brand-title font-serif">四時詩籤</span>
-          <span class="brand-sub font-sans">The Seasonal Oracle</span>
+          <span class="brand-title font-serif">時光詩箋</span>
+          <span class="brand-sub font-sans">Chronicles of Seasons</span>
         </div>
       </div>
 
       <div class="header-controls">
         <nav class="season-switcher" aria-label="季節主題選擇">
           <button class="season-btn active" data-season="spring" title="切換至 春・初綻">
+            <svg class="season-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 21C7.2 17.5 5 11.2 9.5 6.8L12 10L14.5 6.8C19 11.2 16.8 17.5 12 21Z"/>
+            </svg>
             <span class="season-label-full">春・初綻</span>
             <span class="season-label-short">春</span>
           </button>
           <button class="season-btn" data-season="summer" title="切換至 夏・仲夜">
+            <svg class="season-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M15.2 3.8A8.6 8.6 0 1 0 20.5 16.9A6.9 6.9 0 0 1 15.2 3.8Z"/>
+              <polygon points="18,4 18.6,6.4 21,7 18.6,7.6 18,10 17.4,7.6 15,7 17.4,6.4"/>
+            </svg>
             <span class="season-label-full">夏・仲夜</span>
             <span class="season-label-short">夏</span>
           </button>
           <button class="season-btn" data-season="autumn" title="切換至 秋・暮光">
+            <svg class="season-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 17.5V21.5M12 17.5C6.2 16 4.2 9.4 9.8 6.8L12 10.8L14.2 6.8C19.8 9.4 17.8 16 12 17.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
             <span class="season-label-full">秋・暮光</span>
             <span class="season-label-short">秋</span>
           </button>
           <button class="season-btn" data-season="winter" title="切換至 冬・初雪">
+            <svg class="season-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <line x1="4.2" y1="7.5" x2="19.8" y2="16.5"/>
+              <line x1="19.8" y1="7.5" x2="4.2" y2="16.5"/>
+            </svg>
             <span class="season-label-full">冬・初雪</span>
             <span class="season-label-short">冬</span>
           </button>
@@ -131,7 +159,7 @@
          ====================================================================== -->
     <section id="stage-1" class="stage-section stage-selection active">
       <span class="editorial-tag font-sans">ACT I ・ SEASON &amp; INTENTION</span>
-      <h1 class="stage-hero-title font-serif">四時更迭・靈魂深處的微光探問</h1>
+      <h1 class="stage-hero-title font-serif">四季更迭・靈魂深處的微光探問</h1>
       <p class="stage-hero-verse font-serif">
         在時光的長河裡，每一個季節都在悄悄替妳寫詩。<br>
         請挑選一處心靈願意棲息的港灣，讓我們撥開喧囂，靜聽命運的低語。
@@ -265,7 +293,7 @@
           <span class="prog-dot"></span>
         </div>
 
-        <div class="cards-spread-container">
+        <div class="cards-spread-container" id="cards-spread-container">
           <!-- Sacred Celestial Altar Arc Backdrop -->
           <svg class="spread-altar-arc" viewBox="0 0 800 180" fill="none" aria-hidden="true">
             <path d="M 40 165 Q 400 24 760 165" stroke="currentColor" stroke-width="0.9" stroke-dasharray="3 5" stroke-opacity="0.45"/>
@@ -275,6 +303,11 @@
           <div id="spread-deck" class="cards-spread-deck">
             <!-- Mystery cards populated by JavaScript -->
           </div>
+        </div>
+
+        <!-- Custom Editorial Horizontal Deck Track -->
+        <div id="spread-scroll-rail" class="spread-scroll-rail" aria-hidden="true">
+          <div id="spread-scroll-thumb" class="spread-scroll-thumb"></div>
         </div>
 
         <div class="spread-ritual-footer">
@@ -330,31 +363,35 @@
     <div class="postcard-modal">
       <button id="btn-close-postcard" class="postcard-close-btn" aria-label="關閉視窗">&times;</button>
 
-      <div class="postcard-ratio-switcher" id="postcard-ratio-switcher" role="group" aria-label="籤詩海報比例切換">
-        <button type="button" class="postcard-ratio-btn active font-serif" data-ratio="3:4">3:4 典藏書籤</button>
-        <button type="button" class="postcard-ratio-btn font-serif" data-ratio="9:16">9:16 滿版桌布・限動</button>
-      </div>
-      
-      <div id="postcard-editorial-sheet" class="postcard-editorial-sheet">
-        <!-- Dynamically injected postcard content -->
-      </div>
+      <div class="vscroll-shell modal-vscroll-shell">
+        <div class="modal-scroll-viewport postcard-viewport" data-custom-vscroll="postcard">
+          <div class="postcard-ratio-switcher" id="postcard-ratio-switcher" role="group" aria-label="籤詩海報比例切換">
+            <button type="button" class="postcard-ratio-btn active font-serif" data-ratio="3:4">3:4 典藏書籤</button>
+            <button type="button" class="postcard-ratio-btn font-serif" data-ratio="9:16">9:16 滿版桌布・限動</button>
+          </div>
+          
+          <div id="postcard-editorial-sheet" class="postcard-editorial-sheet">
+            <!-- Dynamically injected postcard content -->
+          </div>
 
-      <div class="postcard-actions-bar">
-        <button id="btn-download-postcard" class="btn-primary font-serif">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span id="btn-download-text">儲存籤詩圖片</span>
-        </button>
-        <button id="btn-copy-postcard-text" class="btn-secondary font-serif">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-          複製籤詩文案
-        </button>
+          <div class="postcard-actions-bar">
+            <button id="btn-download-postcard" class="btn-primary font-serif">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span id="btn-download-text">儲存籤詩圖片</span>
+            </button>
+            <button id="btn-copy-postcard-text" class="btn-secondary font-serif">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              複製籤詩文案
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -391,8 +428,10 @@
           <button type="button" class="journal-filter-pill font-sans" data-filter="winter">冬・初雪</button>
         </div>
 
-        <div id="journal-timeline-list" class="journal-timeline-list">
-          <!-- Rendered dynamically from localStorage -->
+        <div class="vscroll-shell journal-scroll-shell">
+          <div id="journal-timeline-list" class="journal-timeline-list" data-custom-vscroll="timeline">
+            <!-- Rendered dynamically from localStorage -->
+          </div>
         </div>
 
         <div class="journal-footer-bar">
@@ -408,8 +447,10 @@
           <span id="gallery-status-text" class="gallery-status-text font-serif">已點亮 0 / 22 張秘儀印記</span>
           <button type="button" id="btn-toggle-gallery-peek" class="gallery-peek-btn font-sans">預覽全圖鑑</button>
         </div>
-        <div id="arcana-gallery-grid" class="arcana-gallery-grid">
-          <!-- Rendered dynamically -->
+        <div class="vscroll-shell gallery-scroll-shell">
+          <div id="arcana-gallery-grid" class="arcana-gallery-grid" data-custom-vscroll="gallery">
+            <!-- Rendered dynamically -->
+          </div>
         </div>
       </div>
     </div>
@@ -421,8 +462,12 @@
   <div id="card-lightbox-modal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="card-lightbox-dialog">
       <button id="btn-close-lightbox" class="postcard-close-btn" aria-label="關閉卡牌賞析">&times;</button>
-      <div id="lightbox-body" class="lightbox-body">
-        <!-- Populated dynamically with enlarged interactive 3D card and full lore -->
+      <div class="vscroll-shell modal-vscroll-shell">
+        <div class="modal-scroll-viewport lightbox-viewport" data-custom-vscroll="lightbox">
+          <div id="lightbox-body" class="lightbox-body">
+            <!-- Populated dynamically with enlarged interactive 3D card and full lore -->
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -33,7 +33,9 @@
     activeLightboxReversed: false,
     postcardRatio: '3:4', // '3:4' | '9:16'
     activeWaveIndex: -1,
-    isShufflingDeck: false
+    isShufflingDeck: false,
+    deckJustDragged: false,
+    customScrollUpdaters: []
   };
 
   // DOM Elements Cache
@@ -61,7 +63,10 @@
     btnReadyPick: document.getElementById('btn-ready-pick'),
     spreadSection: document.getElementById('spread-section'),
     ritualAltarSlots: document.getElementById('ritual-altar-slots'),
+    cardsSpreadContainer: document.getElementById('cards-spread-container'),
     spreadDeck: document.getElementById('spread-deck'),
+    spreadScrollRail: document.getElementById('spread-scroll-rail'),
+    spreadScrollThumb: document.getElementById('spread-scroll-thumb'),
     guideBannerText: document.getElementById('guide-banner-text'),
     spreadHoverWhisper: document.getElementById('spread-hover-whisper'),
     selectionProgressDots: document.getElementById('selection-progress-dots'),
@@ -173,12 +178,19 @@
     state.particles.setSeason(state.season);
 
     setupEventListeners();
+    setupSpreadScrollController();
+    setupCustomVerticalScrollbars();
     applySeasonTheme(state.season);
     updateTopicSelection('love');
     updateGalleryCountBadge();
 
     elements.topicCards.forEach((card) => {
       bind3DTilt(card, { maxDeg: 5 });
+    });
+
+    window.addEventListener('resize', () => {
+      updateSpreadScrollIndicator();
+      refreshAllCustomScrollbars();
     });
 
     window.bgmPlayer?.updateUi();
@@ -564,6 +576,222 @@
     }, 340);
   }
 
+  function updateSpreadScrollIndicator() {
+    const container = elements.cardsSpreadContainer;
+    const rail = elements.spreadScrollRail;
+    const thumb = elements.spreadScrollThumb;
+    if (!container || !rail || !thumb) return;
+
+    const scrollW = container.scrollWidth;
+    const clientW = container.clientWidth;
+    if (scrollW <= clientW + 6) {
+      rail.classList.add('is-hidden');
+      return;
+    }
+
+    rail.classList.remove('is-hidden');
+    const railW = rail.clientWidth || 220;
+    const thumbW = Math.max(36, Math.round((clientW / scrollW) * railW));
+    const maxScroll = scrollW - clientW;
+    const maxThumbX = Math.max(0, railW - thumbW);
+    const ratio = maxScroll > 0 ? Math.max(0, Math.min(1, container.scrollLeft / maxScroll)) : 0;
+
+    thumb.style.width = `${thumbW}px`;
+    thumb.style.transform = `translate(${(ratio * maxThumbX).toFixed(1)}px, -50%)`;
+  }
+
+  function setupSpreadScrollController() {
+    const container = elements.cardsSpreadContainer;
+    const rail = elements.spreadScrollRail;
+    const thumb = elements.spreadScrollThumb;
+    if (!container || container.dataset.scrollCtrlBound === 'true') return;
+    container.dataset.scrollCtrlBound = 'true';
+
+    container.addEventListener('scroll', () => {
+      updateSpreadScrollIndicator();
+      if (container.scrollWidth > container.clientWidth + 6 && state.meditationStep === 'picking') {
+        const rect = container.getBoundingClientRect();
+        applySpreadWaveAtClientX(rect.left + rect.width / 2);
+      }
+    }, { passive: true });
+
+    // Desktop click-and-drag horizontal pan without hijacking touch swipe
+    let isPointerDragging = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+
+    container.addEventListener('mousedown', (e) => {
+      if (container.scrollWidth <= container.clientWidth + 6) return;
+      isPointerDragging = true;
+      state.deckJustDragged = false;
+      startX = e.clientX;
+      startScrollLeft = container.scrollLeft;
+      container.classList.add('is-dragging');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPointerDragging) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 6) {
+        state.deckJustDragged = true;
+      }
+      container.scrollLeft = startScrollLeft - dx;
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isPointerDragging) return;
+      isPointerDragging = false;
+      container.classList.remove('is-dragging');
+      if (state.deckJustDragged) {
+        setTimeout(() => {
+          state.deckJustDragged = false;
+        }, 60);
+      }
+    });
+
+    // Interactive horizontal rail & thumb scrubbing
+    if (rail && thumb) {
+      let thumbDragging = false;
+      let thumbStartX = 0;
+      let thumbStartLeft = 0;
+
+      const scrollToRailClientX = (clientX) => {
+        const railRect = rail.getBoundingClientRect();
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (maxScroll <= 0 || railRect.width <= 0) return;
+        const pct = Math.max(0, Math.min(1, (clientX - railRect.left) / railRect.width));
+        container.scrollLeft = pct * maxScroll;
+      };
+
+      thumb.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        thumbDragging = true;
+        thumbStartX = e.clientX;
+        thumbStartLeft = container.scrollLeft;
+        thumb.setPointerCapture?.(e.pointerId);
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!thumbDragging) return;
+        const railW = rail.clientWidth || 1;
+        const thumbW = thumb.offsetWidth || 36;
+        const maxThumbX = Math.max(1, railW - thumbW);
+        const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+        const deltaRatio = (e.clientX - thumbStartX) / maxThumbX;
+        container.scrollLeft = Math.max(0, Math.min(maxScroll, thumbStartLeft + deltaRatio * maxScroll));
+      });
+
+      window.addEventListener('pointerup', () => {
+        thumbDragging = false;
+      });
+
+      rail.addEventListener('click', (e) => {
+        if (e.target === thumb) return;
+        scrollToRailClientX(e.clientX);
+      });
+    }
+  }
+
+  function refreshAllCustomScrollbars() {
+    (state.customScrollUpdaters || []).forEach((fn) => {
+      try {
+        fn();
+      } catch (e) {}
+    });
+  }
+
+  function setupCustomVerticalScrollbars() {
+    const viewports = document.querySelectorAll('[data-custom-vscroll]');
+    viewports.forEach((scrollEl) => {
+      const shell = scrollEl.closest('.vscroll-shell');
+      if (!shell || shell.querySelector('.editorial-vscroll-rail')) return;
+
+      const rail = document.createElement('div');
+      rail.className = 'editorial-vscroll-rail is-hidden';
+      rail.setAttribute('aria-hidden', 'true');
+
+      const thumb = document.createElement('div');
+      thumb.className = 'editorial-vscroll-thumb';
+      rail.appendChild(thumb);
+      shell.appendChild(rail);
+
+      const updateThumb = () => {
+        const scrollH = scrollEl.scrollHeight;
+        const clientH = scrollEl.clientHeight;
+        if (clientH <= 0 || scrollH <= clientH + 3) {
+          rail.classList.add('is-hidden');
+          return;
+        }
+
+        rail.classList.remove('is-hidden');
+        const railH = rail.clientHeight || clientH;
+        const thumbH = Math.max(36, Math.round((clientH / scrollH) * railH));
+        const maxScroll = Math.max(1, scrollH - clientH);
+        const maxTop = Math.max(0, railH - thumbH);
+        const ratio = Math.max(0, Math.min(1, scrollEl.scrollTop / maxScroll));
+
+        thumb.style.height = `${thumbH}px`;
+        thumb.style.top = `${(ratio * maxTop).toFixed(1)}px`;
+      };
+
+      let isDragging = false;
+      let startY = 0;
+      let startScrollTop = 0;
+
+      thumb.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isDragging = true;
+        startY = e.clientY;
+        startScrollTop = scrollEl.scrollTop;
+        rail.classList.add('is-dragging');
+        thumb.setPointerCapture?.(e.pointerId);
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const railH = rail.clientHeight || 1;
+        const thumbH = thumb.offsetHeight || 36;
+        const maxTop = Math.max(1, railH - thumbH);
+        const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+        const deltaRatio = (e.clientY - startY) / maxTop;
+        scrollEl.scrollTop = Math.max(0, Math.min(maxScroll, startScrollTop + deltaRatio * maxScroll));
+      });
+
+      window.addEventListener('pointerup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        rail.classList.remove('is-dragging');
+      });
+
+      rail.addEventListener('click', (e) => {
+        if (e.target === thumb) return;
+        const railRect = rail.getBoundingClientRect();
+        const clickRatio = Math.max(0, Math.min(1, (e.clientY - railRect.top) / Math.max(1, railRect.height)));
+        const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+        scrollEl.scrollTop = clickRatio * maxScroll;
+      });
+
+      scrollEl.addEventListener('scroll', updateThumb, { passive: true });
+
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => updateThumb());
+        ro.observe(scrollEl);
+        if (scrollEl.firstElementChild) {
+          ro.observe(scrollEl.firstElementChild);
+        }
+      }
+
+      if (window.MutationObserver) {
+        const mo = new MutationObserver(() => requestAnimationFrame(updateThumb));
+        mo.observe(scrollEl, { childList: true, subtree: true });
+      }
+
+      state.customScrollUpdaters.push(updateThumb);
+      requestAnimationFrame(updateThumb);
+    });
+  }
+
   function clearSpreadWaveClasses() {
     if (!elements.spreadDeck) return;
     elements.spreadDeck.querySelectorAll('.mystery-card').forEach((card) => {
@@ -634,19 +862,9 @@
       }
     });
 
-    deck.addEventListener('touchmove', (e) => {
-      if (e.touches && e.touches.length > 0) {
-        applySpreadWaveAtClientX(e.touches[0].clientX);
-      }
-    }, { passive: true });
-
     deck.addEventListener('pointerleave', () => {
       clearSpreadWaveClasses();
     });
-
-    deck.addEventListener('touchend', () => {
-      setTimeout(() => clearSpreadWaveClasses(), 160);
-    }, { passive: true });
   }
 
   function reshuffleMysteryDeck() {
@@ -707,11 +925,19 @@
     if (elements.btnReshuffleDeck) {
       elements.btnReshuffleDeck.disabled = state.pickedCards.length >= getTargetPickCount();
     }
+
+    requestAnimationFrame(() => {
+      const container = elements.cardsSpreadContainer;
+      if (container && container.scrollWidth > container.clientWidth) {
+        container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+      }
+      updateSpreadScrollIndicator();
+    });
   }
 
   function handleMysteryCardClick(cardEl) {
     const targetCount = getTargetPickCount();
-    if (state.isShufflingDeck || state.pickedCards.length >= targetCount || cardEl.classList.contains('picked')) {
+    if (state.deckJustDragged || state.isShufflingDeck || state.pickedCards.length >= targetCount || cardEl.classList.contains('picked')) {
       return;
     }
 
@@ -922,6 +1148,7 @@
 
     const html = `
       <div class="editorial-header-banner">
+        <span class="editorial-tag stage4-act-tag font-sans">ACT IV ・ POETIC REFLECTION</span>
         <div class="reading-topic-tag font-sans">${readingTagText}</div>
         <h1 class="reading-main-title font-serif">${readingTitleText}</h1>
         <div class="reading-date-line font-sans">${dateStr}</div>
@@ -1205,6 +1432,7 @@
     renderLightboxContent();
     elements.cardLightboxModal.classList.add('open');
     elements.cardLightboxModal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(refreshAllCustomScrollbars);
   }
 
   function closeCardLightbox() {
@@ -1288,6 +1516,8 @@
         }
       });
     });
+
+    requestAnimationFrame(refreshAllCustomScrollbars);
   }
 
   // =========================================================================
@@ -1381,6 +1611,7 @@
     switchJournalTab(initialTab);
     elements.journalModal.classList.add('open');
     elements.journalModal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(refreshAllCustomScrollbars);
   }
 
   function closeJournalModal() {
@@ -1411,6 +1642,7 @@
     } else {
       renderJournalTimeline();
     }
+    requestAnimationFrame(refreshAllCustomScrollbars);
   }
 
   function renderJournalFrequencySummary(records) {
@@ -1699,7 +1931,7 @@
         </svg>
       </div>
       <div class="postcard-subtitle font-sans">${seasonData.en}・${seasonData.name}</div>
-      <h3 class="postcard-title font-serif">四時詩籤・謐夜迴響</h3>
+      <h3 class="postcard-title font-serif">時光詩箋・四季迴響</h3>
       ${whisperLineHtml}
       <div class="postcard-trio-visual ${isSingle ? 'single-mode' : ''}">
         ${trioVisualHtml}
@@ -1716,6 +1948,7 @@
     applyPostcardRatioClass();
     elements.postcardModal.classList.add('open');
     elements.postcardModal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(refreshAllCustomScrollbars);
   }
 
   function applyPostcardRatioClass() {
@@ -1726,6 +1959,7 @@
     elements.postcardRatioBtns.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.ratio === state.postcardRatio);
     });
+    requestAnimationFrame(refreshAllCustomScrollbars);
   }
 
   function closePostcardModal() {
@@ -1760,7 +1994,7 @@
       const now = new Date();
       const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
       const link = document.createElement('a');
-      link.download = `四時詩籤_${modeTag}_${dateCode}.png`;
+      link.download = `時光詩箋_${modeTag}_${dateCode}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       showToast('籤詩圖卡已珍藏至裝置');
@@ -1784,7 +2018,7 @@
     const whisperLine = payload.whisper ? `\n心語寄託：${payload.whisper}` : '';
     const noteLine = payload.note ? `\n\n手札隨筆：\n${payload.note}` : '';
 
-    const copyText = `【四時詩籤・謐夜塔羅】
+    const copyText = `【時光詩箋・四季塔羅】
 時光印記：${payload.dateStr}・${payload.seasonData.name}
 探問心境：${payload.topicTitle}${whisperLine}
 
