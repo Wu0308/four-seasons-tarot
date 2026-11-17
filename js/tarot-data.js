@@ -612,3 +612,29 @@ window.SPREAD_POSITIONS = [
     "lead": "越過夜色最濃稠的邊界，遠方正有一束光正為妳成形……"
   }
 ];
+
+window.SINGLE_SPREAD_POSITION = {
+  "key": "glimmer",
+  "title": "流光",
+  "subtitle": "當下之鏡・今日的微光指引",
+  "lead": "在這一瞬的呼吸裡，宇宙為妳定格了一幀溫柔的啟示……"
+};
+
+window.SEASON_EDITORIAL_META = {
+  "spring": {
+    "edition": "N° I ・ PRINTEMPS",
+    "railVerse": "春風拂過初綻的枝頭・萬物皆有裂隙與微光"
+  },
+  "summer": {
+    "edition": "N° II ・ SONGE D'ÉTÉ",
+    "railVerse": "仲夜星河垂落深海・在靜默中聽見潮汐的迴響"
+  },
+  "autumn": {
+    "edition": "N° III ・ CRÉPUSCULE",
+    "railVerse": "暮光穿過琥珀色的落葉・歲月將心事釀成溫柔"
+  },
+  "winter": {
+    "edition": "N° IV ・ GIVRE BLANC",
+    "railVerse": "初雪覆蓋無聲的荒原・所有的沉睡皆為破曉而準備"
+  }
+};
